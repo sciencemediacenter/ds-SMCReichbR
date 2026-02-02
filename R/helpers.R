@@ -277,12 +277,15 @@ copy_table_from_postgres_to_duckdb <- function(
     )
     other_cols <- dbGetQuery(con_pg, cols_query)$column_name
     
+    # Quote column names using DBI (handles DB-specific quoting)
+    quoted_cols <- vapply(other_cols, function(col) {
+      as.character(DBI::dbQuoteIdentifier(con_duck, col))
+    }, character(1))
+    quoted_geom <- as.character(DBI::dbQuoteIdentifier(con_duck, geometry_column))
+    
     # Build SELECT with ST_GeomFromWKB for geometry column
     cols_sql <- paste(
-      c(
-        paste0("`", other_cols, "`", collapse = ", "),
-        glue("ST_GeomFromWKB({geometry_column}) AS {geometry_column}")
-      ),
+      c(quoted_cols, paste0("ST_GeomFromWKB(", quoted_geom, ") AS ", quoted_geom)),
       collapse = ", "
     )
     
