@@ -257,17 +257,46 @@ detach_duckdb_from_postgres <- function(con) {
 #' @param con_pg Postgres connection.
 #' @param pg_schema Schema name.
 #' @param table_name Table name.
+#' @param geometry_column Name of geometry column to convert (NULL for non-spatial tables).
 #' @export
 copy_table_from_postgres_to_duckdb <- function(
   con_duck,
   con_pg,
   pg_schema,
-  table_name
+  table_name,
+  geometry_column = NULL
 ) {
-  sql <- glue_sql(
-    "CREATE TABLE IF NOT EXISTS {`table_name`} AS SELECT * FROM pg_src.{`pg_schema`}.{`table_name`}",
-    .con = con_duck
-  )
+  if (!is.null(geometry_column)) {
+    # For geometry tables, convert WKB_BLOB to proper GEOMETRY type
+    # Get all columns except geometry
+    cols_query <- glue_sql(
+      "SELECT column_name FROM information_schema.columns 
+       WHERE table_schema = {pg_schema} AND table_name = {table_name}
+       AND column_name != {geometry_column}",
+      .con = con_pg
+    )
+    other_cols <- dbGetQuery(con_pg, cols_query)$column_name
+    
+    # Build SELECT with ST_GeomFromWKB for geometry column
+    cols_sql <- paste(
+      c(
+        paste0("`", other_cols, "`", collapse = ", "),
+        glue("ST_GeomFromWKB({geometry_column}) AS {geometry_column}")
+      ),
+      collapse = ", "
+    )
+    
+    sql <- glue_sql(
+      "CREATE TABLE IF NOT EXISTS {`table_name`} AS SELECT {DBI::SQL(cols_sql)} FROM pg_src.{`pg_schema`}.{`table_name`}",
+      .con = con_duck
+    )
+  } else {
+    # Regular table copy
+    sql <- glue_sql(
+      "CREATE TABLE IF NOT EXISTS {`table_name`} AS SELECT * FROM pg_src.{`pg_schema`}.{`table_name`}",
+      .con = con_duck
+    )
+  }
   invisible(dbExecute(con_duck, sql))
 }
 
@@ -276,6 +305,8 @@ copy_table_from_postgres_to_duckdb <- function(
 #' @param con_pg Postgres connection.
 #' @param pg_schema Schema name.
 #' @param relevant_tables Character vector of table names.
+#' @param geometry_tables Character vector of table names with geometry columns.
+#' @param geometry_column Name of the geometry column in geometry tables.
 #' @export
 copy_all_tables_from_postgres_to_duckdb <- function(
   con_duck,
@@ -286,8 +317,18 @@ copy_all_tables_from_postgres_to_duckdb <- function(
     "Gitterzellen_Einwohner_Mapping",
     "Verwaltungsgebiete_Mapping",
     "Gemeindegrenzen_Polygone",
+    "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone",
+    "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"
-  )
+  ),
+  geometry_tables = c(
+    "Gemeindegrenzen_Polygone",
+    "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone",
+    "Regierungsbezirksgrenzen_Polygone"
+  ),
+  geometry_column = "geometry"
 ) {
   dbExecute(con_duck, "INSTALL spatial; LOAD spatial;")
   if (length(relevant_tables) == 1 && relevant_tables == "all") {
@@ -295,11 +336,14 @@ copy_all_tables_from_postgres_to_duckdb <- function(
   }
   for (table_name in relevant_tables) {
     if (!dbExistsTable(con_duck, table_name, schema = pg_schema)) {
+      # Determine if this table has geometry
+      geom_col <- if (table_name %in% geometry_tables) geometry_column else NULL
       copy_table_from_postgres_to_duckdb(
         con_duck,
         con_pg,
         pg_schema,
-        table_name
+        table_name,
+        geom_col
       )
     }
   }
@@ -317,6 +361,54 @@ export_single_duckdb_table_to_parquet <- function(
   output_path,
   compression = "SNAPPY"
 ) {
+  dbExecute(con, "INSTALL parquet; LOAD parquet;")
+  sql <- glue_sql(
+    "COPY (SELECT * FROM {`table_name`}) TO {`output_path`} (FORMAT 'PARQUET', COMPRESSION {`compression`})",
+    .con = con
+  )
+  invisible(dbExecute(con, sql))
+}
+
+#' Export a DuckDB table with geometry to GeoParquet
+#'
+#' Exports a table containing a GEOMETRY column to GeoParquet format.
+#' The DuckDB spatial extension automatically writes proper GeoParquet
+#' metadata when exporting tables with GEOMETRY columns.
+#'
+#' @param con DuckDB connection.
+#' @param table_name Table name.
+#' @param output_path Output file path.
+#' @param compression Compression algorithm (default: "SNAPPY").
+#'
+#' @return Invisible NULL. Called for side effect of writing file.
+#'
+#' @details
+#' This function assumes the table already has a proper GEOMETRY column
+#' (not WKB_BLOB). If your table has WKB_BLOB, use ST_GeomFromWKB() to
+#' convert it first, or ensure geometry conversion happened during
+#' the copy from PostgreSQL.
+#'
+#' The DuckDB spatial extension automatically detects GEOMETRY columns
+#' and writes proper GeoParquet metadata (CRS, bbox, geometry types) to
+#' the Parquet file footer.
+#'
+#' @examples
+#' \dontrun{
+#' export_geometry_table_to_geoparquet(
+#'   con,
+#'   "Gemeindegrenzen_Polygone",
+#'   "output/boundaries.parquet"
+#' )
+#' }
+#'
+#' @export
+export_geometry_table_to_geoparquet <- function(
+  con,
+  table_name,
+  output_path,
+  compression = "SNAPPY"
+) {
+  dbExecute(con, "INSTALL spatial; LOAD spatial;")
   dbExecute(con, "INSTALL parquet; LOAD parquet;")
   sql <- glue_sql(
     "COPY (SELECT * FROM {`table_name`}) TO {`output_path`} (FORMAT 'PARQUET', COMPRESSION {`compression`})",
@@ -366,19 +458,35 @@ export_large_table_to_parquet <- function(
 #' @param con DuckDB connection.
 #' @param output_dir Output directory.
 #' @param large_tables_list Vector of large table names.
+#' @param geometry_tables_list Vector of table names with geometry columns.
 #' @param compression Compression algorithm.
 #' @export
 export_all_duckdb_tables_to_parquet <- function(
   con,
   output_dir,
   large_tables_list = c("Entfernungsdaten"),
+  geometry_tables_list = c(
+    "Gemeindegrenzen_Polygone",
+    "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone",
+    "Regierungsbezirksgrenzen_Polygone"
+  ),
   compression = "SNAPPY"
 ) {
   ensure_dir_exists(output_dir)
   tables_list <- dbListTables(con)
   for (table_name in tables_list) {
     parquet_path <- file.path(output_dir, paste0(table_name, ".parquet"))
-    if (table_name %in% large_tables_list) {
+    if (table_name %in% geometry_tables_list) {
+      # GeoParquet export for spatial tables
+      export_geometry_table_to_geoparquet(
+        con = con,
+        table_name = table_name,
+        output_path = parquet_path,
+        compression = compression
+      )
+    } else if (table_name %in% large_tables_list) {
+      # Chunked export for large tables
       export_large_table_to_parquet(
         con = con,
         table_name = table_name,
@@ -386,6 +494,7 @@ export_all_duckdb_tables_to_parquet <- function(
         compression = compression
       )
     } else {
+      # Regular Parquet for everything else
       export_single_duckdb_table_to_parquet(
         con = con,
         table_name = table_name,
@@ -438,6 +547,36 @@ import_chunked_parquet_to_duckdb <- function(
       )
     }
   }
+}
+
+#' Read a GeoParquet file into an sf object
+#'
+#' Convenience wrapper for reading GeoParquet files exported by this package.
+#' Requires the sf and arrow packages to be installed.
+#'
+#' @param path Path to the GeoParquet file.
+#'
+#' @return An sf object with geometry column.
+#'
+#' @examples
+#' \dontrun{
+#' boundaries <- read_geoparquet("output/Gemeindegrenzen_Polygone.parquet")
+#' plot(boundaries["Gemeindeschluessel"])
+#' }
+#'
+#' @export
+read_geoparquet <- function(path) {
+  if (!requireNamespace("sf", quietly = TRUE)) {
+    stop("Package 'sf' is required to read GeoParquet files. Install with: install.packages('sf')")
+  }
+  if (!requireNamespace("arrow", quietly = TRUE)) {
+    stop("Package 'arrow' is required to read GeoParquet files. Install with: install.packages('arrow')")
+  }
+  require_file_exists(path)
+  
+  # Read with arrow, then convert to sf
+  df <- arrow::read_parquet(path)
+  sf::st_as_sf(df)
 }
 
 #' Format columns for label creation

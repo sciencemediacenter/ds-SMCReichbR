@@ -114,6 +114,8 @@ Geofilter_Funktion <- function(
 #' @param output_dir Directory to save the output parquet files (will be created if it doesn't exist).
 #' @param pg_schema Schema name in the PostgreSQL database (default: "public").
 #' @param relevant_tables Vector of table names to copy from Postgres to DuckDB.
+#' @param geometry_tables Vector of table names with geometry columns (for GeoParquet export).
+#' @param geometry_column Name of the geometry column in geometry tables (default: "geometry").
 #' @param filter_table_name Name of the filter table in DuckDB.
 #' @param filter_column_name Name of the column to filter on.
 #' @param target_table_name Name of the target table in DuckDB for filtered data.
@@ -148,8 +150,18 @@ run_geofilter <- function(
     "Gitterzellen_Einwohner_Mapping",
     "Verwaltungsgebiete_Mapping",
     "Gemeindegrenzen_Polygone",
+    "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone",
+    "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"
   ),
+  geometry_tables = c(
+    "Gemeindegrenzen_Polygone",
+    "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone",
+    "Regierungsbezirksgrenzen_Polygone"
+  ),
+  geometry_column = "geometry",
   filter_table_name = "Geofilter",
   filter_column_name = "Gitterzellen_ID",
   target_table_name = "Entfernungsdaten_subset",
@@ -302,7 +314,9 @@ run_geofilter <- function(
       con_duck = con_duck,
       con_pg = con,
       pg_schema = pg_schema,
-      relevant_tables = relevant_tables
+      relevant_tables = relevant_tables,
+      geometry_tables = geometry_tables,
+      geometry_column = geometry_column
     )
   })
 
@@ -331,6 +345,7 @@ run_geofilter <- function(
   export_all_duckdb_tables_to_parquet(
     con = con_duck,
     output_dir = output_dir,
+    geometry_tables_list = geometry_tables,
     compression = compression
   )
 

@@ -8,6 +8,8 @@ export_all_duckdb_tables_to_parquet(
   con,
   output_dir,
   large_tables_list = c("Entfernungsdaten"),
+  geometry_tables_list = c("Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone"),
   compression = "SNAPPY"
 )
 }
@@ -17,6 +19,8 @@ export_all_duckdb_tables_to_parquet(
 \item{output_dir}{Output directory.}
 
 \item{large_tables_list}{Vector of large table names.}
+
+\item{geometry_tables_list}{Vector of table names with geometry columns.}
 
 \item{compression}{Compression algorithm.}
 }

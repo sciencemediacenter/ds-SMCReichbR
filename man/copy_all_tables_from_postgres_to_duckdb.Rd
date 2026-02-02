@@ -9,8 +9,12 @@ copy_all_tables_from_postgres_to_duckdb(
   con_pg,
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
-    "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone",
-    "Krankenhaus_Standortliste")
+    "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"),
+  geometry_tables = c("Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone"),
+  geometry_column = "geometry"
 )
 }
 \arguments{
@@ -21,6 +25,10 @@ copy_all_tables_from_postgres_to_duckdb(
 \item{pg_schema}{Schema name.}
 
 \item{relevant_tables}{Character vector of table names.}
+
+\item{geometry_tables}{Character vector of table names with geometry columns.}
+
+\item{geometry_column}{Name of the geometry column in geometry tables.}
 }
 \description{
 Copy all relevant tables from Postgres to DuckDB

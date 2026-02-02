@@ -11,8 +11,12 @@ Klinikfilter_Funktion(
   output_dir = "data/nobackup/Klinikfilter",
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
-    "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone",
+    "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"),
+  geometry_tables = c("Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone"),
+  geometry_column = "geometry",
   filter_table_name = "Klinikfilter",
   filter_column_name = "Krankenhaus_Standortnummer",
   target_table_name = "Entfernungsdaten_subset",
@@ -30,6 +34,10 @@ Klinikfilter_Funktion(
 \item{pg_schema}{Schema name in the PostgreSQL database (default: "public").}
 
 \item{relevant_tables}{Vector of table names to copy from Postgres to DuckDB.}
+
+\item{geometry_tables}{Vector of table names with geometry columns (for GeoParquet export).}
+
+\item{geometry_column}{Name of the geometry column in geometry tables (default: "geometry").}
 
 \item{filter_table_name}{Name of the filter table in DuckDB.}
 

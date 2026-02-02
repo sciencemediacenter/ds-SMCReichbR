@@ -4,7 +4,13 @@
 \alias{copy_table_from_postgres_to_duckdb}
 \title{Copy a table from Postgres to DuckDB}
 \usage{
-copy_table_from_postgres_to_duckdb(con_duck, con_pg, pg_schema, table_name)
+copy_table_from_postgres_to_duckdb(
+  con_duck,
+  con_pg,
+  pg_schema,
+  table_name,
+  geometry_column = NULL
+)
 }
 \arguments{
 \item{con_duck}{DuckDB connection.}
@@ -14,6 +20,8 @@ copy_table_from_postgres_to_duckdb(con_duck, con_pg, pg_schema, table_name)
 \item{pg_schema}{Schema name.}
 
 \item{table_name}{Table name.}
+
+\item{geometry_column}{Name of geometry column to convert (NULL for non-spatial tables).}
 }
 \description{
 Copy a table from Postgres to DuckDB
