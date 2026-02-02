@@ -9,7 +9,8 @@ export_all_duckdb_tables_to_parquet(
   output_dir,
   large_tables_list = c("Entfernungsdaten"),
   geometry_tables_list = c("Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
-    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone"),
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"),
   compression = "SNAPPY"
 )
 }

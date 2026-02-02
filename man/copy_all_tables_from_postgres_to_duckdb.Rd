@@ -13,7 +13,8 @@ copy_all_tables_from_postgres_to_duckdb(
     "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"),
   geometry_tables = c("Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
-    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone"),
+    "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"),
   geometry_column = "geometry"
 )
 }

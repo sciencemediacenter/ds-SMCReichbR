@@ -50,7 +50,8 @@ Klinikfilter_Funktion <- function(
     "Gemeindegrenzen_Polygone",
     "Kreisgrenzen_Polygone",
     "Landesgrenzen_Polygone",
-    "Regierungsbezirksgrenzen_Polygone"
+    "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"
   ),
   geometry_column = "geometry",
   filter_table_name = "Klinikfilter",

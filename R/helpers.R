@@ -329,7 +329,8 @@ copy_all_tables_from_postgres_to_duckdb <- function(
     "Gemeindegrenzen_Polygone",
     "Kreisgrenzen_Polygone",
     "Landesgrenzen_Polygone",
-    "Regierungsbezirksgrenzen_Polygone"
+    "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"
   ),
   geometry_column = "geometry"
 ) {
@@ -472,7 +473,8 @@ export_all_duckdb_tables_to_parquet <- function(
     "Gemeindegrenzen_Polygone",
     "Kreisgrenzen_Polygone",
     "Landesgrenzen_Polygone",
-    "Regierungsbezirksgrenzen_Polygone"
+    "Regierungsbezirksgrenzen_Polygone",
+    "Krankenhaus_Standortliste"
   ),
   compression = "SNAPPY"
 ) {
