@@ -409,10 +409,12 @@ import_chunked_parquet_to_duckdb <- function(
   num_chunks = NULL
 ) {
   parquet_path <- file.path(output_dir, paste0(table_name, ".parquet"))
-  chunk_pattern <- paste0(parquet_path, "_chunk_", "[0-9]+", ".parquet")
+  # Look in the {table_name}_chunks subdirectory that export_large_table_to_parquet creates
+  chunks_dir <- file.path(output_dir, paste0(table_name, "_chunks"))
+  chunk_pattern <- paste0(table_name, ".parquet_chunk_", "[0-9]+", ".parquet")
   chunk_files <- list.files(
-    path = dirname(parquet_path),
-    pattern = basename(chunk_pattern),
+    path = chunks_dir,
+    pattern = chunk_pattern,
     full.names = TRUE
   )
   if (!length(chunk_files)) {

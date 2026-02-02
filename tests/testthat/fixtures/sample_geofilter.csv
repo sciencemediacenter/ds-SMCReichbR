@@ -1,0 +1,6 @@
+Gemeindename,Gemeindeschluessel,Bundesland,Kreis
+TestGemeinde,01001001,Schleswig-Holstein,TestKreis
+AndereGemeinde,01001002,Schleswig-Holstein,TestKreis
+DritteGemeinde,01001003,Schleswig-Holstein,AndererKreis
+VierteGemeinde,01001004,Schleswig-Holstein,AndererKreis
+FuenfteGemeinde,01001005,Schleswig-Holstein,DritteKreis

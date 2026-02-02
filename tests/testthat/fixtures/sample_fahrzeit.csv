@@ -1,0 +1,11 @@
+Gitterzellen_ID,Einwohner,Fahrzeit_Sekunden,Gemeindename,Gemeindeschluessel,Bundesland,Kreis
+grid_001,100,1200,TestGemeinde,01001001,Schleswig-Holstein,TestKreis
+grid_002,200,1800,TestGemeinde,01001001,Schleswig-Holstein,TestKreis
+grid_003,150,2400,TestGemeinde,01001001,Schleswig-Holstein,TestKreis
+grid_004,80,900,AndereGemeinde,01001002,Schleswig-Holstein,TestKreis
+grid_005,120,1500,AndereGemeinde,01001002,Schleswig-Holstein,TestKreis
+grid_006,90,2100,AndereGemeinde,01001002,Schleswig-Holstein,TestKreis
+grid_007,110,1800,DritteGemeinde,01001003,Schleswig-Holstein,AndererKreis
+grid_008,140,2700,DritteGemeinde,01001003,Schleswig-Holstein,AndererKreis
+grid_009,75,1200,DritteGemeinde,01001003,Schleswig-Holstein,AndererKreis
+grid_010,95,3000,DritteGemeinde,01001003,Schleswig-Holstein,AndererKreis
