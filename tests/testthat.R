@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(ReichbR)
+library(SMCReichbR)
 
-test_check("ReichbR")
+test_check("SMCReichbR")

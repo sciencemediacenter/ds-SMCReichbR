@@ -1,6 +1,6 @@
-Package: ReichbR
+Package: SMCReichbR
 Title: SMC Tools for Krankenhaus Erreichbarkeitsanalysen
-Version: 0.0.0.9000
+Version: 0.0-1
 Authors@R: 
 	person("Simon", "Essink", email="simon.essink@sciencemediacenter.de", role=c("aut", "cre"), comment = c(ORCID = "0000-0003-1390-3885"))
 Description: Provides tools for accessing the Science Media Center (SMC) hospital
@@ -23,9 +23,6 @@ Imports:
     glue,
     duckdb,
     tools
-Remotes:
-    sciencemediacenter/SMChelpR,
-    trafficonese/leaflet.extras
 Suggests:
     rstudioapi,
     testthat (>= 3.0.0),
