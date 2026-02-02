@@ -7,6 +7,7 @@
 Fahrzeit_Differenz_Zusammenfassung(
   reference_data,
   scenario_data,
+  .by,
   by = c("Gitterzellen_ID", "Einwohner", "Gemeindename", "Gemeindeschluessel",
     "Bundesland", "Regierungsbezirk", "Kreis", "Bundesland_ID", "Regierungsbezirk_ID",
     "Kreis_ID", "Gemeinde_ID", "Datum_Gitter")
@@ -17,7 +18,9 @@ Fahrzeit_Differenz_Zusammenfassung(
 
 \item{scenario_data}{A tibble with scenario travel times and grouping columns.}
 
-\item{by}{Character vector of column names to join and group by (default: typical spatial and population columns).}
+\item{.by}{Grouping columns for summarization (tidyselect, e.g. c(Gemeindename, Gemeindeschluessel)).}
+
+\item{by}{Character vector of column names to join by (default: typical spatial and population columns).}
 }
 \value{
 A tibble summarizing, for each group, the total population, weighted mean travel time difference,
@@ -32,6 +35,6 @@ the number and percentage of people affected by increased travel times.
 The inputs \code{reference_data} and \code{scenario_data} are expected to be tibbles (as returned by dplyr/tidyverse workflows).
 }
 \examples{
-# summary <- Fahrzeit_Differenz_Zusammenfassung(ref_df, scen_df)
+# summary <- Fahrzeit_Differenz_Zusammenfassung(ref_df, scen_df, Gemeindename)
 
 }

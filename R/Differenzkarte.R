@@ -31,18 +31,20 @@ utils::globalVariables(c(
 #'
 #' @param reference_data A tibble with reference travel times and grouping columns.
 #' @param scenario_data A tibble with scenario travel times and grouping columns.
-#' @param by Character vector of column names to join and group by (default: typical spatial and population columns).
+#' @param .by Grouping columns for summarization (tidyselect, e.g. c(Gemeindename, Gemeindeschluessel)).
+#' @param by Character vector of column names to join by (default: typical spatial and population columns).
 #'
 #' @return A tibble summarizing, for each group, the total population, weighted mean travel time difference,
 #' number of affected people, and percent affected.
 #'
 #' @examples
-#' # summary <- Fahrzeit_Differenz_Zusammenfassung(ref_df, scen_df)
+#' # summary <- Fahrzeit_Differenz_Zusammenfassung(ref_df, scen_df, Gemeindename)
 #'
 #' @export
 Fahrzeit_Differenz_Zusammenfassung <- function(
     reference_data,
     scenario_data,
+    .by,
     by = c(
         "Gitterzellen_ID",
         "Einwohner",
