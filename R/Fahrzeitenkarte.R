@@ -29,7 +29,10 @@ utils::globalVariables(c(
 #' @return A tibble summarizing, for each group, the total population, weighted mean travel time, and, if threshold is set, the number and percent affected.
 #'
 #' @examples
-#' # summary <- Fahrzeit_Zusammenfassung(df, c(Gemeindename, Gemeindeschluessel), Grenzwert_Minuten = 30)
+#' # summary <- Fahrzeit_Zusammenfassung(
+#' #     df,
+#' #     c(Gemeindename, Gemeindeschluessel), Grenzwert_Minuten = 30
+#' #)
 #'
 #' @export
 Fahrzeit_Zusammenfassung <- function(

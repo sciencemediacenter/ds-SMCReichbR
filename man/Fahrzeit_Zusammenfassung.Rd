@@ -23,6 +23,9 @@ Calculates the weighted mean travel time and, if a threshold is given, the numbe
 The input \code{data} is expected to be a tibble (as returned by dplyr/tidyverse workflows).
 }
 \examples{
-# summary <- Fahrzeit_Zusammenfassung(df, c(Gemeindename, Gemeindeschluessel), Grenzwert_Minuten = 30)
+# summary <- Fahrzeit_Zusammenfassung(
+#     df,
+#     c(Gemeindename, Gemeindeschluessel), Grenzwert_Minuten = 30
+#)
 
 }

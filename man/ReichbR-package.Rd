@@ -6,7 +6,7 @@
 \alias{ReichbR-package}
 \title{ReichbR: SMC Tools for Krankenhaus Erreichbarkeitsanalysen}
 \description{
-A collection of functions needed for accessing the SMC hospital driving times database and using it for Erreichbarkeitsanalysen
+Provides helpers for accessing the SMC hospital driving time database and for running Erreichbarkeitsanalysen. The package bundles utilities to load and transform the source data, to filter spatial selections, and to export summaries for downstream reporting.
 }
 \author{
 \strong{Maintainer}: Simon Essink \email{simon.essink@sciencemediacenter.de} (\href{https://orcid.org/0000-0003-1390-3885}{ORCID})

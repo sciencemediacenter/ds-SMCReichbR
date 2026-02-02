@@ -2,6 +2,7 @@
 #' @importFrom dplyr mutate left_join summarise filter distinct bind_rows rowwise as_tibble select pull inner_join tbl collect tibble
 #' @importFrom readr read_csv read_csv2 write_csv cols col_character
 #' @importFrom DBI dbIsValid dbExecute dbWriteTable dbGetQuery dbAppendTable dbListTables dbDisconnect dbConnect dbExistsTable dbGetInfo
+#' @importFrom connections connection_view
 #' @importFrom RPostgres Postgres
 #' @importFrom duckdb duckdb
 #' @importFrom glue glue glue_sql

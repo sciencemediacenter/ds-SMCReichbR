@@ -380,7 +380,7 @@ pick_row <- function(one_tpl_row, lookup_df, row_i) {
   }
   if (nrow(cand) == 0) {
     message(
-      "\n[WARNING] Keine Übereinstimmung für Zeile Nr. ",
+      "\n[WARNING] Keine Uebereinstimmung fuer Zeile Nr. ",
       row_i,
       ": ",
       paste(one_tpl_row, collapse = " / ")
