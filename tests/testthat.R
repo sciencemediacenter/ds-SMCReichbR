@@ -9,4 +9,4 @@
 library(testthat)
 library(ReichbR)
 
-# test_check("ReichbR")
+test_check("ReichbR")
