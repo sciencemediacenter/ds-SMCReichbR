@@ -64,7 +64,7 @@ Fahrzeit_Differenz_Zusammenfassung <- function(
             by = by,
             suffix = c("_Referenz", "_Szenario")
         ) |>
-        # Differenz: Szenario (tendenziell längere Fahrzeiten) - Referenz
+         # Differenz: Szenario (tendenziell laengere Fahrzeiten) - Referenz
         mutate(
             Fahrzeit_Differenz_Minuten = (Fahrzeit_Sekunden_Szenario -
                 Fahrzeit_Sekunden_Referenz) /
