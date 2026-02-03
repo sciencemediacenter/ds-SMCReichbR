@@ -208,20 +208,34 @@ check_primary_key_exists <- function(
 }
 
 #' Connect to a DuckDB database
+#'
+#' Creates a connection to a DuckDB database file and optionally loads
+#' the spatial and parquet extensions.
+#'
 #' @param db_path Path to DuckDB file.
 #' @param expose_connection_to_viewer Logical, show in connections pane.
 #' @param print_connection_info Logical, print connection info.
+#' @param load_spatial Logical, install and load the spatial extension (default: TRUE).
+#' @param load_parquet Logical, install and load the parquet extension (default: TRUE).
 #' @return A DBI connection object.
 #' @export
 connect_to_duckdb_db <- function(
   db_path,
   expose_connection_to_viewer = FALSE,
-  print_connection_info = FALSE
+  print_connection_info = FALSE,
+  load_spatial = TRUE,
+  load_parquet = TRUE
 ) {
   con <- tryCatch(
     dbConnect(duckdb(), dbdir = db_path),
     error = function(e) stop("Could not connect to DuckDB: ", e$message)
   )
+  if (load_spatial) {
+    dbExecute(con, "INSTALL spatial; LOAD spatial;")
+  }
+  if (load_parquet) {
+    dbExecute(con, "INSTALL parquet; LOAD parquet;")
+  }
   if (expose_connection_to_viewer) {
     connection_view(con)
   }
@@ -334,7 +348,6 @@ copy_all_tables_from_postgres_to_duckdb <- function(
   ),
   geometry_column = "geometry"
 ) {
-  dbExecute(con_duck, "INSTALL spatial; LOAD spatial;")
   if (length(relevant_tables) == 1 && relevant_tables == "all") {
     relevant_tables <- dbListTables(con_pg, schema = pg_schema)
   }
@@ -365,7 +378,6 @@ export_single_duckdb_table_to_parquet <- function(
   output_path,
   compression = "SNAPPY"
 ) {
-  dbExecute(con, "INSTALL parquet; LOAD parquet;")
   sql <- glue_sql(
     "COPY (SELECT * FROM {`table_name`}) TO {`output_path`} (FORMAT 'PARQUET', COMPRESSION {`compression`})",
     .con = con
@@ -412,8 +424,6 @@ export_geometry_table_to_geoparquet <- function(
   output_path,
   compression = "SNAPPY"
 ) {
-  dbExecute(con, "INSTALL spatial; LOAD spatial;")
-  dbExecute(con, "INSTALL parquet; LOAD parquet;")
   sql <- glue_sql(
     "COPY (SELECT * FROM {`table_name`}) TO {`output_path`} (FORMAT 'PARQUET', COMPRESSION {`compression`})",
     .con = con

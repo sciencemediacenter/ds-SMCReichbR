@@ -249,7 +249,6 @@ copy_tables_from_source <- function(
     )
   } else if (inherits(source, "duckdb_source")) {
     # DuckDB source: geometry already converted, just copy tables
-    dbExecute(con_duck, "INSTALL spatial; LOAD spatial;")
     for (table_name in tables) {
       if (!dbExistsTable(con_duck, table_name)) {
         sql <- glue_sql(
