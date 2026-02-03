@@ -7,7 +7,9 @@
 connect_to_duckdb_db(
   db_path,
   expose_connection_to_viewer = FALSE,
-  print_connection_info = FALSE
+  print_connection_info = FALSE,
+  load_spatial = TRUE,
+  load_parquet = TRUE
 )
 }
 \arguments{
@@ -16,10 +18,15 @@ connect_to_duckdb_db(
 \item{expose_connection_to_viewer}{Logical, show in connections pane.}
 
 \item{print_connection_info}{Logical, print connection info.}
+
+\item{load_spatial}{Logical, install and load the spatial extension (default: TRUE).}
+
+\item{load_parquet}{Logical, install and load the parquet extension (default: TRUE).}
 }
 \value{
 A DBI connection object.
 }
 \description{
-Connect to a DuckDB database
+Creates a connection to a DuckDB database file and optionally loads
+the spatial and parquet extensions.
 }
