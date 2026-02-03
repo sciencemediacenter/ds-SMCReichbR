@@ -10,6 +10,7 @@
 test_that("Fahrzeit_Zusammenfassung returns tibble", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A"),
+    Gitterzellen_ID = c("G1", "G2"),
     Fahrzeit_Sekunden = c(1200, 1800),
     Einwohner = c(100, 200)
   )
@@ -22,6 +23,7 @@ test_that("Fahrzeit_Zusammenfassung returns tibble", {
 test_that("Fahrzeit_Zusammenfassung calculates Einwohner_Gesamt correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A"),
+    Gitterzellen_ID = c("G1", "G2"),
     Fahrzeit_Sekunden = c(1200, 1800),
     Einwohner = c(100, 200)
   )
@@ -34,6 +36,7 @@ test_that("Fahrzeit_Zusammenfassung calculates Einwohner_Gesamt correctly", {
 test_that("Fahrzeit_Zusammenfassung calculates weighted mean correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A"),
+    Gitterzellen_ID = c("G1", "G2"),
     Fahrzeit_Sekunden = c(1200, 1800),  # 20 min, 30 min
     Einwohner = c(100, 200)
   )
@@ -48,6 +51,7 @@ test_that("Fahrzeit_Zusammenfassung calculates weighted mean correctly", {
 test_that("Fahrzeit_Zusammenfassung converts seconds to minutes", {
   data <- tibble::tibble(
     Gemeinde = "A",
+    Gitterzellen_ID = "G1",
     Fahrzeit_Sekunden = 1800,  # 30 minutes
     Einwohner = 100
   )
@@ -60,6 +64,7 @@ test_that("Fahrzeit_Zusammenfassung converts seconds to minutes", {
 test_that("Fahrzeit_Zusammenfassung groups by .by parameter", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "B", "B"),
+    Gitterzellen_ID = c("G1", "G2", "G3", "G4"),
     Fahrzeit_Sekunden = c(1200, 1800, 2400, 3600),
     Einwohner = c(100, 200, 150, 50)
   )
@@ -71,11 +76,38 @@ test_that("Fahrzeit_Zusammenfassung groups by .by parameter", {
   expect_true("B" %in% result$Gemeinde)
 })
 
+test_that("Fahrzeit_Zusammenfassung counts Anzahl_Gitterzellen correctly", {
+  data <- tibble::tibble(
+    Gemeinde = c("A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G3"),
+    Fahrzeit_Sekunden = c(1200, 1800, 2400),
+    Einwohner = c(100, 200, 150)
+  )
+  
+  result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
+  
+  expect_equal(result$Anzahl_Gitterzellen, 3)
+})
+
+test_that("Fahrzeit_Zusammenfassung counts distinct Gitterzellen_ID", {
+  data <- tibble::tibble(
+    Gemeinde = c("A", "A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G1", "G2"),  # Only 2 distinct
+    Fahrzeit_Sekunden = c(1200, 1800, 1200, 1800),
+    Einwohner = c(100, 200, 50, 75)
+  )
+  
+  result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
+  
+  expect_equal(result$Anzahl_Gitterzellen, 2)
+})
+
 # --- Threshold behavior ---
 
 test_that("Fahrzeit_Zusammenfassung without threshold omits Betroffene columns", {
   data <- tibble::tibble(
     Gemeinde = "A",
+    Gitterzellen_ID = "G1",
     Fahrzeit_Sekunden = 1800,
     Einwohner = 100
   )
@@ -84,11 +116,13 @@ test_that("Fahrzeit_Zusammenfassung without threshold omits Betroffene columns",
   
   expect_false("Anzahl_Betroffene" %in% names(result))
   expect_false("Prozent_Betroffene" %in% names(result))
+  expect_true("Anzahl_Gitterzellen" %in% names(result))
 })
 
 test_that("Fahrzeit_Zusammenfassung with threshold includes Betroffene columns", {
   data <- tibble::tibble(
     Gemeinde = "A",
+    Gitterzellen_ID = "G1",
     Fahrzeit_Sekunden = 1800,
     Einwohner = 100
   )
@@ -97,11 +131,13 @@ test_that("Fahrzeit_Zusammenfassung with threshold includes Betroffene columns",
   
   expect_true("Anzahl_Betroffene" %in% names(result))
   expect_true("Prozent_Betroffene" %in% names(result))
+  expect_true("Anzahl_Gitterzellen" %in% names(result))
 })
 
 test_that("Fahrzeit_Zusammenfassung calculates Anzahl_Betroffene correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G3"),
     Fahrzeit_Sekunden = c(1200, 1800, 2400),  # 20, 30, 40 min
     Einwohner = c(100, 200, 150)
   )
@@ -116,6 +152,7 @@ test_that("Fahrzeit_Zusammenfassung calculates Anzahl_Betroffene correctly", {
 test_that("Fahrzeit_Zusammenfassung calculates Prozent_Betroffene correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G3"),
     Fahrzeit_Sekunden = c(1200, 1800, 2400),  # 20, 30, 40 min
     Einwohner = c(100, 200, 150)
   )
@@ -133,6 +170,7 @@ test_that("Fahrzeit_Zusammenfassung calculates Prozent_Betroffene correctly", {
 test_that("Fahrzeit_Zusammenfassung handles NA values in Fahrzeit", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G3"),
     Fahrzeit_Sekunden = c(1200, NA, 1800),
     Einwohner = c(100, 200, 150)
   )
@@ -148,6 +186,7 @@ test_that("Fahrzeit_Zusammenfassung handles NA values in Fahrzeit", {
 test_that("Fahrzeit_Zusammenfassung handles NA values in Einwohner", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
+    Gitterzellen_ID = c("G1", "G2", "G3"),
     Fahrzeit_Sekunden = c(1200, 1800, 2400),
     Einwohner = c(100, NA, 150)
   )
@@ -161,6 +200,7 @@ test_that("Fahrzeit_Zusammenfassung handles NA values in Einwohner", {
 test_that("Fahrzeit_Zusammenfassung handles empty tibble", {
   data <- tibble::tibble(
     Gemeinde = character(0),
+    Gitterzellen_ID = character(0),
     Fahrzeit_Sekunden = numeric(0),
     Einwohner = numeric(0)
   )

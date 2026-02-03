@@ -7,14 +7,16 @@
 Fahrzeit_Zusammenfassung(data, .by, Grenzwert_Minuten = NULL)
 }
 \arguments{
-\item{data}{A tibble with travel times and population columns.}
+\item{data}{A tibble with travel times and population columns. Must include columns:
+Fahrzeit_Sekunden, Einwohner, Gitterzellen_ID.}
 
 \item{.by}{Grouping columns (tidyselect, e.g. c(Gemeindename, Gemeindeschluessel)).}
 
 \item{Grenzwert_Minuten}{Optional numeric threshold (in minutes) for "affected" population.}
 }
 \value{
-A tibble summarizing, for each group, the total population, weighted mean travel time, and, if threshold is set, the number and percent affected.
+A tibble summarizing, for each group, the total population, weighted mean travel time,
+number of grid cells, and, if threshold is set, the number and percent affected.
 }
 \description{
 Calculates the weighted mean travel time and, if a threshold is given, the number and percentage of people exceeding it.
