@@ -10,7 +10,9 @@ run_geofilter(
   output_dir = file.path("data", "nobackup", "Geofilter"),
   source = "postgres",
   source_duckdb_path = NULL,
-  pg_options = list(),
+  pg_options = list(enable_hashjoin = "off", enable_mergejoin = "off", enable_nestloop =
+    "on", min_parallel_table_scan_size = "8MB", parallel_setup_cost = 0,
+    parallel_tuple_cost = 0, seq_page_cost = 10),
   duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
@@ -42,10 +44,22 @@ run_geofilter(
 
 \item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
 
-\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).
-Available options: work_mem, maintenance_work_mem, effective_cache_size,
-random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
-Set a value to NULL to use database default for that setting.}
+\item{pg_options}{List of PostgreSQL optimization settings (merged with
+\code{\link{postgres_source}} defaults). Geofilter sets additional defaults
+optimized for the geofilter query pattern:
+\itemize{
+\item \code{enable_hashjoin = "off"} - Disable hash joins
+\item \code{enable_mergejoin = "off"} - Disable merge joins
+\item \code{enable_nestloop = "on"} - Enable nested loop joins
+\item \code{min_parallel_table_scan_size = "8MB"} - Enable parallelism for smaller tables
+\item \code{parallel_setup_cost = 0} - Reduce parallel query startup cost
+\item \code{parallel_tuple_cost = 0} - Reduce per-tuple parallel cost
+\item \code{seq_page_cost = 10} - Increase cost of sequential scans
+}
+Base defaults from \code{\link{postgres_source}}: work_mem="512MB",
+maintenance_work_mem="512MB", effective_cache_size="4GB", random_page_cost=1.1,
+effective_io_concurrency=200, max_parallel_workers_per_gather=4.
+Override any setting by including it in this list. Set to NULL to use database default.}
 
 \item{duckdb_options}{List of DuckDB optimization settings.
 Available options: threads, memory_limit.}
@@ -100,12 +114,12 @@ geofilter_result <- run_geofilter(
   source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
 )
 
-# PostgreSQL with custom optimization settings
+# PostgreSQL with custom optimization settings (override geofilter defaults)
 geofilter_result <- run_geofilter(
   preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
   output_dir = "data/nobackup/Geofilter",
-  pg_options = list(work_mem = "1GB", max_parallel_workers_per_gather = 8)
+  pg_options = list(enable_hashjoin = "on", work_mem = "2GB")
 )
 }
 }

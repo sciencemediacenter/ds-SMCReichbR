@@ -43,10 +43,13 @@ Klinikfilter_Funktion(
 
 \item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
 
-\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).
-Available options: work_mem, maintenance_work_mem, effective_cache_size,
-random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
-Set a value to NULL to use database default for that setting.}
+\item{pg_options}{List of PostgreSQL optimization settings (merged with
+\code{\link{postgres_source}} defaults). By default, Klinikfilter uses the
+base postgres_source defaults: work_mem="512MB", maintenance_work_mem="512MB",
+effective_cache_size="4GB", random_page_cost=1.1, effective_io_concurrency=200,
+max_parallel_workers_per_gather=4.
+Override any setting by including it in this list. Set to NULL to use database default.
+See \code{\link{postgres_source}} for all available options.}
 
 \item{duckdb_options}{List of DuckDB optimization settings.
 Available options: threads, memory_limit.}

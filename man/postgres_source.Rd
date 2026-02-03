@@ -10,7 +10,14 @@ postgres_source(
   effective_cache_size = "4GB",
   random_page_cost = 1.1,
   effective_io_concurrency = 200,
-  max_parallel_workers_per_gather = 4
+  max_parallel_workers_per_gather = 4,
+  enable_hashjoin = NULL,
+  enable_mergejoin = NULL,
+  enable_nestloop = NULL,
+  min_parallel_table_scan_size = NULL,
+  parallel_setup_cost = NULL,
+  parallel_tuple_cost = NULL,
+  seq_page_cost = NULL
 )
 }
 \arguments{
@@ -25,6 +32,20 @@ postgres_source(
 \item{effective_io_concurrency}{Concurrent I/O operations (default: 200)}
 
 \item{max_parallel_workers_per_gather}{Parallel workers per query (default: 4)}
+
+\item{enable_hashjoin}{Enable/disable hash joins (default: NULL = database default)}
+
+\item{enable_mergejoin}{Enable/disable merge joins (default: NULL = database default)}
+
+\item{enable_nestloop}{Enable/disable nested loop joins (default: NULL = database default)}
+
+\item{min_parallel_table_scan_size}{Minimum table size for parallel scan (default: NULL = database default)}
+
+\item{parallel_setup_cost}{Cost of starting parallel workers (default: NULL = database default)}
+
+\item{parallel_tuple_cost}{Cost per tuple for parallel workers (default: NULL = database default)}
+
+\item{seq_page_cost}{Cost of sequential page fetch (default: NULL = database default)}
 }
 \value{
 A pg_source object
@@ -42,6 +63,13 @@ src <- postgres_source()
 # Override specific settings
 src <- postgres_source(work_mem = "1GB", max_parallel_workers_per_gather = 8)
 
+# Configure for nested loop joins (used by Geofilter)
+src <- postgres_source(
+  enable_hashjoin = "off",
+  enable_mergejoin = "off",
+  enable_nestloop = "on"
+)
+
 # Use database defaults for all settings (no optimizations)
 src <- postgres_source(
   work_mem = NULL,
@@ -52,4 +80,8 @@ src <- postgres_source(
   max_parallel_workers_per_gather = NULL
 )
 }
+}
+\seealso{
+\code{\link{Geofilter_Funktion}} and \code{\link{Klinikfilter_Funktion}}
+apply additional filter-specific optimizations on top of these defaults.
 }

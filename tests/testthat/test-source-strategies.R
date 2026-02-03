@@ -78,6 +78,40 @@ test_that("postgres_source with all NULL settings disables optimizations", {
   expect_true(all(sapply(src$settings, is.null)))
 })
 
+test_that("postgres_source includes new optimization parameters with NULL defaults", {
+  src <- postgres_source()
+
+  # New parameters should exist and default to NULL
+  expect_true("enable_hashjoin" %in% names(src$settings))
+  expect_null(src$settings$enable_hashjoin)
+  expect_null(src$settings$enable_mergejoin)
+  expect_null(src$settings$enable_nestloop)
+  expect_null(src$settings$min_parallel_table_scan_size)
+  expect_null(src$settings$parallel_setup_cost)
+  expect_null(src$settings$parallel_tuple_cost)
+  expect_null(src$settings$seq_page_cost)
+})
+
+test_that("postgres_source allows setting new optimization parameters", {
+  src <- postgres_source(
+    enable_hashjoin = "off",
+    enable_mergejoin = "off",
+    enable_nestloop = "on",
+    min_parallel_table_scan_size = "8MB",
+    parallel_setup_cost = 0,
+    parallel_tuple_cost = 0,
+    seq_page_cost = 10
+  )
+
+  expect_equal(src$settings$enable_hashjoin, "off")
+  expect_equal(src$settings$enable_mergejoin, "off")
+  expect_equal(src$settings$enable_nestloop, "on")
+  expect_equal(src$settings$min_parallel_table_scan_size, "8MB")
+  expect_equal(src$settings$parallel_setup_cost, 0)
+  expect_equal(src$settings$parallel_tuple_cost, 0)
+  expect_equal(src$settings$seq_page_cost, 10)
+})
+
 # ============================================================================
 # duckdb_source() tests
 # ============================================================================
@@ -166,6 +200,24 @@ test_that("create_source_config overrides specific settings", {
   expect_equal(src$settings$maintenance_work_mem, "1GB")
   # Other settings should still have defaults
   expect_equal(src$settings$effective_cache_size, "4GB")
+})
+
+test_that("create_source_config merges new pg_options parameters", {
+  src <- create_source_config(
+    source = "postgres",
+    pg_options = list(
+      enable_hashjoin = "off",
+      enable_nestloop = "on",
+      work_mem = "2GB"
+    )
+  )
+
+  expect_equal(src$settings$enable_hashjoin, "off")
+  expect_equal(src$settings$enable_nestloop, "on")
+  expect_equal(src$settings$work_mem, "2GB")
+  # Unset new params should remain NULL
+  expect_null(src$settings$enable_mergejoin)
+  expect_null(src$settings$seq_page_cost)
 })
 
 test_that("create_source_config creates duckdb source when specified", {

@@ -10,8 +10,17 @@
 #' @param random_page_cost Cost estimate for random page fetch (default: 1.1)
 #' @param effective_io_concurrency Concurrent I/O operations (default: 200)
 #' @param max_parallel_workers_per_gather Parallel workers per query (default: 4)
+#' @param enable_hashjoin Enable/disable hash joins (default: NULL = database default)
+#' @param enable_mergejoin Enable/disable merge joins (default: NULL = database default)
+#' @param enable_nestloop Enable/disable nested loop joins (default: NULL = database default)
+#' @param min_parallel_table_scan_size Minimum table size for parallel scan (default: NULL = database default)
+#' @param parallel_setup_cost Cost of starting parallel workers (default: NULL = database default)
+#' @param parallel_tuple_cost Cost per tuple for parallel workers (default: NULL = database default)
+#' @param seq_page_cost Cost of sequential page fetch (default: NULL = database default)
 #' @return A pg_source object
 #' @export
+#' @seealso \code{\link{Geofilter_Funktion}} and \code{\link{Klinikfilter_Funktion}}
+#'   apply additional filter-specific optimizations on top of these defaults.
 #' @examples
 #' \dontrun{
 #' # Use defaults
@@ -19,6 +28,13 @@
 #'
 #' # Override specific settings
 #' src <- postgres_source(work_mem = "1GB", max_parallel_workers_per_gather = 8)
+#'
+#' # Configure for nested loop joins (used by Geofilter)
+#' src <- postgres_source(
+#'   enable_hashjoin = "off",
+#'   enable_mergejoin = "off",
+#'   enable_nestloop = "on"
+#' )
 #'
 #' # Use database defaults for all settings (no optimizations)
 #' src <- postgres_source(
@@ -36,7 +52,14 @@ postgres_source <- function(
   effective_cache_size = "4GB",
   random_page_cost = 1.1,
   effective_io_concurrency = 200,
-  max_parallel_workers_per_gather = 4
+  max_parallel_workers_per_gather = 4,
+  enable_hashjoin = NULL,
+  enable_mergejoin = NULL,
+  enable_nestloop = NULL,
+  min_parallel_table_scan_size = NULL,
+  parallel_setup_cost = NULL,
+  parallel_tuple_cost = NULL,
+  seq_page_cost = NULL
 ) {
   settings <- list(
     work_mem = work_mem,
@@ -44,7 +67,14 @@ postgres_source <- function(
     effective_cache_size = effective_cache_size,
     random_page_cost = random_page_cost,
     effective_io_concurrency = effective_io_concurrency,
-    max_parallel_workers_per_gather = max_parallel_workers_per_gather
+    max_parallel_workers_per_gather = max_parallel_workers_per_gather,
+    enable_hashjoin = enable_hashjoin,
+    enable_mergejoin = enable_mergejoin,
+    enable_nestloop = enable_nestloop,
+    min_parallel_table_scan_size = min_parallel_table_scan_size,
+    parallel_setup_cost = parallel_setup_cost,
+    parallel_tuple_cost = parallel_tuple_cost,
+    seq_page_cost = seq_page_cost
   )
 
   structure(

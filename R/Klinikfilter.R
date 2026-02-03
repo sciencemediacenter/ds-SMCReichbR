@@ -9,10 +9,13 @@
 #' @param output_dir Directory to save the output parquet files (will be created if it doesn't exist).
 #' @param source Data source type: "postgres" or "duckdb" (default: "postgres").
 #' @param source_duckdb_path Path to DuckDB source database (required if source = "duckdb").
-#' @param pg_options List of PostgreSQL optimization settings (merged with defaults).
-#'   Available options: work_mem, maintenance_work_mem, effective_cache_size,
-#'   random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
-#'   Set a value to NULL to use database default for that setting.
+#' @param pg_options List of PostgreSQL optimization settings (merged with
+#'   \code{\link{postgres_source}} defaults). By default, Klinikfilter uses the
+#'   base postgres_source defaults: work_mem="512MB", maintenance_work_mem="512MB",
+#'   effective_cache_size="4GB", random_page_cost=1.1, effective_io_concurrency=200,
+#'   max_parallel_workers_per_gather=4.
+#'   Override any setting by including it in this list. Set to NULL to use database default.
+#'   See \code{\link{postgres_source}} for all available options.
 #' @param duckdb_options List of DuckDB optimization settings.
 #'   Available options: threads, memory_limit.
 #' @param pg_schema Schema name in the PostgreSQL database (default: "public").
@@ -153,13 +156,6 @@ Klinikfilter_Funktion <- function(
   # -------------------------------------------------------------------- #
   if (inherits(source_config, "pg_source")) {
     apply_source_optimizations(source_config, source_conn$con)
-    # Reset some PostgreSQL settings to DEFAULT for Klinikfilter
-    # (different optimization strategy than Geofilter)
-    dbExecute(source_conn$con, "SET enable_hashjoin = DEFAULT;")
-    dbExecute(source_conn$con, "SET enable_mergejoin = DEFAULT;")
-    dbExecute(source_conn$con, "SET enable_nestloop = DEFAULT;")
-    dbExecute(source_conn$con, "SET random_page_cost = DEFAULT;")
-    dbExecute(source_conn$con, "SET effective_io_concurrency = DEFAULT;")
   } else if (inherits(source_config, "duckdb_source")) {
     apply_source_optimizations(source_config, con_duck)
   }

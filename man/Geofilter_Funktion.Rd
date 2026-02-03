@@ -12,7 +12,9 @@ Geofilter_Funktion(
     paste0(basename(tools::file_path_sans_ext(geofilter_csv_path)), "_preprocessed.csv")),
   source = "postgres",
   source_duckdb_path = NULL,
-  pg_options = list(),
+  pg_options = list(enable_hashjoin = "off", enable_mergejoin = "off", enable_nestloop =
+    "on", min_parallel_table_scan_size = "8MB", parallel_setup_cost = 0,
+    parallel_tuple_cost = 0, seq_page_cost = 10),
   duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
@@ -41,7 +43,22 @@ Geofilter_Funktion(
 
 \item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
 
-\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).}
+\item{pg_options}{List of PostgreSQL optimization settings (merged with
+\code{\link{postgres_source}} defaults). Geofilter sets additional defaults
+optimized for the geofilter query pattern:
+\itemize{
+\item \code{enable_hashjoin = "off"} - Disable hash joins
+\item \code{enable_mergejoin = "off"} - Disable merge joins
+\item \code{enable_nestloop = "on"} - Enable nested loop joins
+\item \code{min_parallel_table_scan_size = "8MB"} - Enable parallelism for smaller tables
+\item \code{parallel_setup_cost = 0} - Reduce parallel query startup cost
+\item \code{parallel_tuple_cost = 0} - Reduce per-tuple parallel cost
+\item \code{seq_page_cost = 10} - Increase cost of sequential scans
+}
+Base defaults from \code{\link{postgres_source}}: work_mem="512MB",
+maintenance_work_mem="512MB", effective_cache_size="4GB", random_page_cost=1.1,
+effective_io_concurrency=200, max_parallel_workers_per_gather=4.
+Override any setting by including it in this list. Set to NULL to use database default.}
 
 \item{duckdb_options}{List of DuckDB optimization settings.}
 
@@ -88,6 +105,14 @@ result <- Geofilter_Funktion(
   output_dir = "data/nobackup/Geofilter",
   source = "duckdb",
   source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
+)
+
+# Override geofilter optimization (re-enable hash joins, increase work_mem)
+result <- Geofilter_Funktion(
+  geofilter_csv_path = "data/Geofilter_list_NRW.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+  output_dir = "data/nobackup/Geofilter",
+  pg_options = list(enable_hashjoin = "on", work_mem = "2GB")
 )
 }
 }
