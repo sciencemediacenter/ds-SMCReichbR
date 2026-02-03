@@ -9,6 +9,10 @@ Klinikfilter_Funktion(
     "data/TEMPLATE_Krankenhaus_Standortnummern_large.csv",
   duckdb_path = file.path("data", "nobackup", "Entfernungsdaten_Klinikfilter.duckdb"),
   output_dir = "data/nobackup/Klinikfilter",
+  source = "postgres",
+  source_duckdb_path = NULL,
+  pg_options = list(),
+  duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
     "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
@@ -18,11 +22,14 @@ Klinikfilter_Funktion(
     "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"),
   geometry_column = "geometry",
+  tables_to_copy = NULL,
   filter_table_name = "Klinikfilter",
   filter_column_name = "Krankenhaus_Standortnummer",
   target_table_name = "Entfernungsdaten_subset",
   compression = "SNAPPY",
-  work_mem = "512MB"
+  expose_connections_to_viewer = TRUE,
+  print_connection_info = FALSE,
+  disconnect_on_exit = TRUE
 )
 }
 \arguments{
@@ -32,13 +39,27 @@ Klinikfilter_Funktion(
 
 \item{output_dir}{Directory to save the output parquet files (will be created if it doesn't exist).}
 
+\item{source}{Data source type: "postgres" or "duckdb" (default: "postgres").}
+
+\item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
+
+\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).
+Available options: work_mem, maintenance_work_mem, effective_cache_size,
+random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
+Set a value to NULL to use database default for that setting.}
+
+\item{duckdb_options}{List of DuckDB optimization settings.
+Available options: threads, memory_limit.}
+
 \item{pg_schema}{Schema name in the PostgreSQL database (default: "public").}
 
-\item{relevant_tables}{Vector of table names to copy from Postgres to DuckDB.}
+\item{relevant_tables}{Vector of table names to copy from source to DuckDB.}
 
 \item{geometry_tables}{Vector of table names with geometry columns (for GeoParquet export).}
 
 \item{geometry_column}{Name of the geometry column in geometry tables (default: "geometry").}
+
+\item{tables_to_copy}{Optional subset of tables to copy (default: all relevant_tables).}
 
 \item{filter_table_name}{Name of the filter table in DuckDB.}
 
@@ -48,21 +69,44 @@ Klinikfilter_Funktion(
 
 \item{compression}{Compression algorithm for parquet files.}
 
-\item{work_mem}{PostgreSQL work_mem setting.}
+\item{expose_connections_to_viewer}{Whether to expose connections to the viewer.}
+
+\item{print_connection_info}{Whether to print connection info.}
+
+\item{disconnect_on_exit}{Whether to disconnect from databases on exit.}
 }
 \value{
 A list with paths to the created database and parquet files.
 }
 \description{
 Applies a hospital filter to the distance dataset based on a list of hospital site numbers.
+Supports both PostgreSQL and DuckDB as data sources.
 All tabular inputs and outputs are tibbles.
 }
 \examples{
 \dontrun{
+# Using PostgreSQL source (default)
 result <- Klinikfilter_Funktion(
   krankenhaus_standortnummern_csv_path = "data/TEMPLATE_Krankenhaus_Standortnummern_large.csv",
   duckdb_path = "data/nobackup/Entfernungsdaten_Klinikfilter.duckdb",
   output_dir = "data/nobackup/Klinikfilter"
+)
+
+# Using DuckDB Komplettexport as source
+result <- Klinikfilter_Funktion(
+  krankenhaus_standortnummern_csv_path = "data/TEMPLATE_Krankenhaus_Standortnummern_large.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Klinikfilter.duckdb",
+  output_dir = "data/nobackup/Klinikfilter",
+  source = "duckdb",
+  source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
+)
+
+# PostgreSQL with custom optimization settings
+result <- Klinikfilter_Funktion(
+  krankenhaus_standortnummern_csv_path = "data/TEMPLATE_Krankenhaus_Standortnummern_large.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Klinikfilter.duckdb",
+  output_dir = "data/nobackup/Klinikfilter",
+  pg_options = list(work_mem = "1GB")
 )
 }
 }

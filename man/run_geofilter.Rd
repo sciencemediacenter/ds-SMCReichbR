@@ -8,6 +8,10 @@ run_geofilter(
   preprocessed_geofilter_list_csv_path,
   duckdb_path = file.path("data", "nobackup", "Entfernungsdaten_Geofilter.duckdb"),
   output_dir = file.path("data", "nobackup", "Geofilter"),
+  source = "postgres",
+  source_duckdb_path = NULL,
+  pg_options = list(),
+  duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
     "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone", "Kreisgrenzen_Polygone",
@@ -17,10 +21,10 @@ run_geofilter(
     "Landesgrenzen_Polygone", "Regierungsbezirksgrenzen_Polygone",
     "Krankenhaus_Standortliste"),
   geometry_column = "geometry",
+  tables_to_copy = NULL,
   filter_table_name = "Geofilter",
   filter_column_name = "Gitterzellen_ID",
   target_table_name = "Entfernungsdaten_subset",
-  optimize_postgres_settings = TRUE,
   expose_connections_to_viewer = TRUE,
   print_connection_info = FALSE,
   compression = "SNAPPY",
@@ -34,21 +38,33 @@ run_geofilter(
 
 \item{output_dir}{Directory to save the output parquet files (will be created if it doesn't exist).}
 
+\item{source}{Data source type: "postgres" or "duckdb" (default: "postgres").}
+
+\item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
+
+\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).
+Available options: work_mem, maintenance_work_mem, effective_cache_size,
+random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
+Set a value to NULL to use database default for that setting.}
+
+\item{duckdb_options}{List of DuckDB optimization settings.
+Available options: threads, memory_limit.}
+
 \item{pg_schema}{Schema name in the PostgreSQL database (default: "public").}
 
-\item{relevant_tables}{Vector of table names to copy from Postgres to DuckDB.}
+\item{relevant_tables}{Vector of table names to copy from source to DuckDB.}
 
 \item{geometry_tables}{Vector of table names with geometry columns (for GeoParquet export).}
 
 \item{geometry_column}{Name of the geometry column in geometry tables (default: "geometry").}
+
+\item{tables_to_copy}{Optional subset of tables to copy (default: all relevant_tables).}
 
 \item{filter_table_name}{Name of the filter table in DuckDB.}
 
 \item{filter_column_name}{Name of the column to filter on.}
 
 \item{target_table_name}{Name of the target table in DuckDB for filtered data.}
-
-\item{optimize_postgres_settings}{Whether to optimize Postgres settings for the query.}
 
 \item{expose_connections_to_viewer}{Whether to expose connections to the viewer.}
 
@@ -63,14 +79,33 @@ A list with paths to the created database and parquet files.
 }
 \description{
 Applies a geographical filter to a dataset of distance measurements based on a list of municipalities.
+Supports both PostgreSQL and DuckDB as data sources.
 All tabular inputs and outputs are expected to be tibbles.
 }
 \examples{
 \dontrun{
+# Using PostgreSQL source (default)
 geofilter_result <- run_geofilter(
   preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
   output_dir = "data/nobackup/Geofilter"
+)
+
+# Using DuckDB Komplettexport as source
+geofilter_result <- run_geofilter(
+  preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+  output_dir = "data/nobackup/Geofilter",
+  source = "duckdb",
+  source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
+)
+
+# PostgreSQL with custom optimization settings
+geofilter_result <- run_geofilter(
+  preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+  output_dir = "data/nobackup/Geofilter",
+  pg_options = list(work_mem = "1GB", max_parallel_workers_per_gather = 8)
 )
 }
 }

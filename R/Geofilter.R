@@ -7,12 +7,16 @@
 #' @param duckdb_path Path to the output DuckDB database file.
 #' @param output_dir Directory to save the output parquet files.
 #' @param preprocessed_output_path Path to save the preprocessed geofilter list.
+#' @param source Data source type: "postgres" or "duckdb" (default: "postgres").
+#' @param source_duckdb_path Path to DuckDB source database (required if source = "duckdb").
+#' @param pg_options List of PostgreSQL optimization settings (merged with defaults).
+#' @param duckdb_options List of DuckDB optimization settings.
 #' @param pg_schema Schema name in the PostgreSQL database.
-#' @param relevant_tables Vector of table names to copy from Postgres to DuckDB.
+#' @param relevant_tables Vector of table names to copy from source to DuckDB.
+#' @param tables_to_copy Optional subset of tables to copy (default: all relevant_tables).
 #' @param filter_table_name Name of the filter table in DuckDB.
 #' @param filter_column_name Name of the column to filter on.
 #' @param target_table_name Name of the target table in DuckDB for filtered data.
-#' @param optimize_postgres_settings Whether to optimize Postgres settings for the query.
 #' @param expose_connections_to_viewer Whether to expose connections to the viewer.
 #' @param print_connection_info Whether to print connection info.
 #' @param compression Compression algorithm for parquet files.
@@ -22,10 +26,20 @@
 #'
 #' @examples
 #' \dontrun{
+#' # Using PostgreSQL source (default)
 #' result <- Geofilter_Funktion(
 #'   geofilter_csv_path = "data/Geofilter_list_NRW.csv",
 #'   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
 #'   output_dir = "data/nobackup/Geofilter"
+#' )
+#'
+#' # Using DuckDB Komplettexport as source
+#' result <- Geofilter_Funktion(
+#'   geofilter_csv_path = "data/Geofilter_list_NRW.csv",
+#'   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+#'   output_dir = "data/nobackup/Geofilter",
+#'   source = "duckdb",
+#'   source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
 #' )
 #' }
 #' @export
@@ -44,6 +58,10 @@ Geofilter_Funktion <- function(
       "_preprocessed.csv"
     )
   ),
+  source = "postgres",
+  source_duckdb_path = NULL,
+  pg_options = list(),
+  duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c(
     "Gitterzellen_Gemeinde_Mapping",
@@ -52,10 +70,10 @@ Geofilter_Funktion <- function(
     "Gemeindegrenzen_Polygone",
     "Krankenhaus_Standortliste"
   ),
+  tables_to_copy = NULL,
   filter_table_name = "Geofilter",
   filter_column_name = "Gitterzellen_ID",
   target_table_name = "Entfernungsdaten_subset",
-  optimize_postgres_settings = TRUE,
   expose_connections_to_viewer = TRUE,
   print_connection_info = FALSE,
   compression = "SNAPPY",
@@ -89,12 +107,16 @@ Geofilter_Funktion <- function(
     preprocessed_geofilter_list_csv_path = preprocessed_output_path,
     duckdb_path = duckdb_path,
     output_dir = output_dir,
+    source = source,
+    source_duckdb_path = source_duckdb_path,
+    pg_options = pg_options,
+    duckdb_options = duckdb_options,
     pg_schema = pg_schema,
     relevant_tables = relevant_tables,
+    tables_to_copy = tables_to_copy,
     filter_table_name = filter_table_name,
     filter_column_name = filter_column_name,
     target_table_name = target_table_name,
-    optimize_postgres_settings = optimize_postgres_settings,
     expose_connections_to_viewer = expose_connections_to_viewer,
     print_connection_info = print_connection_info,
     compression = compression,
@@ -107,19 +129,28 @@ Geofilter_Funktion <- function(
 #' Run Geofilter
 #'
 #' Applies a geographical filter to a dataset of distance measurements based on a list of municipalities.
+#' Supports both PostgreSQL and DuckDB as data sources.
 #' All tabular inputs and outputs are expected to be tibbles.
 #'
 #' @param preprocessed_geofilter_list_csv_path Path to the preprocessed CSV file with the list of municipalities to filter by.
 #' @param duckdb_path Path to the output DuckDB database file (will be created if it doesn't exist).
 #' @param output_dir Directory to save the output parquet files (will be created if it doesn't exist).
+#' @param source Data source type: "postgres" or "duckdb" (default: "postgres").
+#' @param source_duckdb_path Path to DuckDB source database (required if source = "duckdb").
+#' @param pg_options List of PostgreSQL optimization settings (merged with defaults).
+#'   Available options: work_mem, maintenance_work_mem, effective_cache_size,
+#'   random_page_cost, effective_io_concurrency, max_parallel_workers_per_gather.
+#'   Set a value to NULL to use database default for that setting.
+#' @param duckdb_options List of DuckDB optimization settings.
+#'   Available options: threads, memory_limit.
 #' @param pg_schema Schema name in the PostgreSQL database (default: "public").
-#' @param relevant_tables Vector of table names to copy from Postgres to DuckDB.
+#' @param relevant_tables Vector of table names to copy from source to DuckDB.
 #' @param geometry_tables Vector of table names with geometry columns (for GeoParquet export).
 #' @param geometry_column Name of the geometry column in geometry tables (default: "geometry").
+#' @param tables_to_copy Optional subset of tables to copy (default: all relevant_tables).
 #' @param filter_table_name Name of the filter table in DuckDB.
 #' @param filter_column_name Name of the column to filter on.
 #' @param target_table_name Name of the target table in DuckDB for filtered data.
-#' @param optimize_postgres_settings Whether to optimize Postgres settings for the query.
 #' @param expose_connections_to_viewer Whether to expose connections to the viewer.
 #' @param print_connection_info Whether to print connection info.
 #' @param compression Compression algorithm for parquet files.
@@ -129,10 +160,28 @@ Geofilter_Funktion <- function(
 #'
 #' @examples
 #' \dontrun{
+#' # Using PostgreSQL source (default)
 #' geofilter_result <- run_geofilter(
 #'   preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
 #'   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
 #'   output_dir = "data/nobackup/Geofilter"
+#' )
+#'
+#' # Using DuckDB Komplettexport as source
+#' geofilter_result <- run_geofilter(
+#'   preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
+#'   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+#'   output_dir = "data/nobackup/Geofilter",
+#'   source = "duckdb",
+#'   source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
+#' )
+#'
+#' # PostgreSQL with custom optimization settings
+#' geofilter_result <- run_geofilter(
+#'   preprocessed_geofilter_list_csv_path = "data/nobackup/Geofilter_list_NRW_preprocessed.csv",
+#'   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+#'   output_dir = "data/nobackup/Geofilter",
+#'   pg_options = list(work_mem = "1GB", max_parallel_workers_per_gather = 8)
 #' )
 #' }
 #' @export
@@ -144,6 +193,10 @@ run_geofilter <- function(
     "Entfernungsdaten_Geofilter.duckdb"
   ),
   output_dir = file.path("data", "nobackup", "Geofilter"),
+  source = "postgres",
+  source_duckdb_path = NULL,
+  pg_options = list(),
+  duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c(
     "Gitterzellen_Gemeinde_Mapping",
@@ -163,10 +216,10 @@ run_geofilter <- function(
     "Krankenhaus_Standortliste"
   ),
   geometry_column = "geometry",
+  tables_to_copy = NULL,
   filter_table_name = "Geofilter",
   filter_column_name = "Gitterzellen_ID",
   target_table_name = "Entfernungsdaten_subset",
-  optimize_postgres_settings = TRUE,
   expose_connections_to_viewer = TRUE,
   print_connection_info = FALSE,
   compression = "SNAPPY",
@@ -174,6 +227,16 @@ run_geofilter <- function(
 ) {
   # --- Error handling ---
   require_file_exists(preprocessed_geofilter_list_csv_path)
+
+  # -------------------------------------------------------------------- #
+  # Create source configuration
+  # -------------------------------------------------------------------- #
+  source_config <- create_source_config(
+    source = source,
+    source_duckdb_path = source_duckdb_path,
+    pg_options = pg_options,
+    duckdb_options = duckdb_options
+  )
 
   # -------------------------------------------------------------------- #
   # Load preprocessed geofilter list
@@ -190,75 +253,10 @@ run_geofilter <- function(
   }
 
   # -------------------------------------------------------------------- #
-  # Connect to Postgres database
-  # -------------------------------------------------------------------- #
-  con <- connect_to_postgres_db(
-    expose_connection_to_viewer = expose_connections_to_viewer,
-    print_connection_info = print_connection_info
-  )
-  if (is.null(con) || !dbIsValid(con)) {
-    stop("Failed to connect to Postgres database.")
-  }
-
-  # -------------------------------------------------------------------- #
-  # Optimize Postgres settings for the query if requested
-  # -------------------------------------------------------------------- #
-  if (optimize_postgres_settings) {
-    dbExecute(con, "SET enable_hashjoin = off;")
-    dbExecute(con, "SET enable_mergejoin = off;")
-    dbExecute(con, "SET enable_nestloop = on;")
-    dbExecute(con, "SET min_parallel_table_scan_size = '8MB';")
-    dbExecute(con, "SET parallel_setup_cost = 0;")
-    dbExecute(con, "SET parallel_tuple_cost = 0;")
-    dbExecute(con, "SET work_mem = '512MB';")
-    dbExecute(con, "SET seq_page_cost = 10;")
-    dbExecute(con, "SET random_page_cost = 1.1;")
-  }
-
-  # -------------------------------------------------------------------- #
-  # Load remote tables
-  # -------------------------------------------------------------------- #
-  remote_Verwaltungsgebiete_Mapping <- tbl(
-    con,
-    Id(schema = pg_schema, table = "Verwaltungsgebiete_Mapping")
-  )
-  remote_Gitterzellen_Gemeinde_Mapping <- tbl(
-    con,
-    Id(schema = pg_schema, table = "Gitterzellen_Gemeinde_Mapping")
-  )
-  remote_Gitterzellen_Einwohner_Mapping <- tbl(
-    con,
-    Id(schema = pg_schema, table = "Gitterzellen_Einwohner_Mapping")
-  )
-
-  # -------------------------------------------------------------------- #
-  # Identify relevant Gitterzellen IDs and create temporary table
-  # -------------------------------------------------------------------- #
-  cat("Creating temporary table for Gitterzellen IDs...\n")
-  Gitterzellen_IDs_to_analyze <- remote_Verwaltungsgebiete_Mapping |>
-    filter(Gemeindeschluessel %in% geo_list_to_analyze$Gemeindeschluessel) |>
-    left_join(
-      remote_Gitterzellen_Gemeinde_Mapping,
-      by = "Gemeindeschluessel"
-    ) |>
-    inner_join(remote_Gitterzellen_Einwohner_Mapping, by = "Gitterzellen_ID") |>
-    select(Gitterzellen_ID) |>
-    pull()
-
-  dbWriteTable(
-    con,
-    name = "temp_gitterzellen_ids",
-    value = tibble(Gitterzellen_ID = Gitterzellen_IDs_to_analyze),
-    temporary = TRUE,
-    overwrite = TRUE
-  )
-  dbExecute(con, "ANALYZE temp_gitterzellen_ids;")
-  cat("Temporary table created and analyzed.\n")
-
-  # -------------------------------------------------------------------- #
-  # Create connection to DuckDB database
+  # Create connection to target DuckDB database
   # -------------------------------------------------------------------- #
   ensure_dir_exists(dirname(duckdb_path))
+  ensure_dir_exists(output_dir)
 
   con_duck <- connect_to_duckdb_db(
     db_path = duckdb_path,
@@ -266,12 +264,95 @@ run_geofilter <- function(
   )
 
   # -------------------------------------------------------------------- #
-  # Attach to DuckDB to remote Postgres database
+  # Connect to data source
   # -------------------------------------------------------------------- #
-  attach_duckdb_to_postgres(con = con_duck)
+  cat("Connecting to data source (", source, ")...\n", sep = "")
+  source_conn <- connect_to_source(
+    source = source_config,
+    con_duck = con_duck,
+    expose_connection_to_viewer = expose_connections_to_viewer,
+    print_connection_info = print_connection_info
+  )
 
   # -------------------------------------------------------------------- #
-  # Copy temporary table to local database
+  # Apply source-specific optimizations
+  # -------------------------------------------------------------------- #
+  if (inherits(source_config, "pg_source")) {
+    apply_source_optimizations(source_config, source_conn$con)
+    # Additional PostgreSQL-specific optimizations for geofilter query
+    dbExecute(source_conn$con, "SET enable_hashjoin = off;")
+    dbExecute(source_conn$con, "SET enable_mergejoin = off;")
+    dbExecute(source_conn$con, "SET enable_nestloop = on;")
+    dbExecute(source_conn$con, "SET min_parallel_table_scan_size = '8MB';")
+    dbExecute(source_conn$con, "SET parallel_setup_cost = 0;")
+    dbExecute(source_conn$con, "SET parallel_tuple_cost = 0;")
+    dbExecute(source_conn$con, "SET seq_page_cost = 10;")
+  } else if (inherits(source_config, "duckdb_source")) {
+    apply_source_optimizations(source_config, con_duck)
+  }
+
+  # -------------------------------------------------------------------- #
+  # Identify relevant Gitterzellen IDs
+  # -------------------------------------------------------------------- #
+  cat("Identifying relevant Gitterzellen IDs...\n")
+
+  if (inherits(source_config, "pg_source")) {
+    # PostgreSQL: use dbplyr for lazy evaluation
+    remote_Verwaltungsgebiete_Mapping <- tbl(
+      source_conn$con,
+      Id(schema = pg_schema, table = "Verwaltungsgebiete_Mapping")
+    )
+    remote_Gitterzellen_Gemeinde_Mapping <- tbl(
+      source_conn$con,
+      Id(schema = pg_schema, table = "Gitterzellen_Gemeinde_Mapping")
+    )
+    remote_Gitterzellen_Einwohner_Mapping <- tbl(
+      source_conn$con,
+      Id(schema = pg_schema, table = "Gitterzellen_Einwohner_Mapping")
+    )
+
+    Gitterzellen_IDs_to_analyze <- remote_Verwaltungsgebiete_Mapping |>
+      filter(Gemeindeschluessel %in% geo_list_to_analyze$Gemeindeschluessel) |>
+      left_join(
+        remote_Gitterzellen_Gemeinde_Mapping,
+        by = "Gemeindeschluessel"
+      ) |>
+      inner_join(remote_Gitterzellen_Einwohner_Mapping, by = "Gitterzellen_ID") |>
+      select(Gitterzellen_ID) |>
+      pull()
+
+    # Create temporary table in PostgreSQL for optimization
+    dbWriteTable(
+      source_conn$con,
+      name = "temp_gitterzellen_ids",
+      value = tibble(Gitterzellen_ID = Gitterzellen_IDs_to_analyze),
+      temporary = TRUE,
+      overwrite = TRUE
+    )
+    dbExecute(source_conn$con, "ANALYZE temp_gitterzellen_ids;")
+
+  } else if (inherits(source_config, "duckdb_source")) {
+    # DuckDB source: query directly from attached database
+    Gitterzellen_IDs_to_analyze <- dbGetQuery(
+      con_duck,
+      glue_sql(
+        "SELECT DISTINCT g.Gitterzellen_ID
+         FROM source_db.Verwaltungsgebiete_Mapping v
+         INNER JOIN source_db.Gitterzellen_Gemeinde_Mapping g
+           ON v.Gemeindeschluessel = g.Gemeindeschluessel
+         INNER JOIN source_db.Gitterzellen_Einwohner_Mapping e
+           ON g.Gitterzellen_ID = e.Gitterzellen_ID
+         WHERE v.Gemeindeschluessel IN ({gemeindeschluessel*})",
+        gemeindeschluessel = geo_list_to_analyze$Gemeindeschluessel,
+        .con = con_duck
+      )
+    )$Gitterzellen_ID
+  }
+
+  cat("Found ", length(Gitterzellen_IDs_to_analyze), " Gitterzellen IDs to filter.\n", sep = "")
+
+  # -------------------------------------------------------------------- #
+  # Create filter table in target DuckDB
   # -------------------------------------------------------------------- #
   dbExecute(
     con_duck,
@@ -280,51 +361,62 @@ run_geofilter <- function(
       .con = con_duck
     )
   )
-  temp_data <- dbGetQuery(con, "SELECT * FROM temp_gitterzellen_ids")
+
+  if (inherits(source_config, "pg_source")) {
+    temp_data <- dbGetQuery(source_conn$con, "SELECT * FROM temp_gitterzellen_ids")
+  } else {
+    temp_data <- tibble(Gitterzellen_ID = Gitterzellen_IDs_to_analyze)
+  }
   dbAppendTable(con_duck, filter_table_name, temp_data)
 
   # -------------------------------------------------------------------- #
   # Apply Geofilter to Entfernungsdaten and save result to DuckDB
   # -------------------------------------------------------------------- #
-  cat(
-    "Filtering data and streaming from PostgreSQL to DuckDB using ATTACH...\n"
-  )
+  cat("Filtering data and streaming from ", source, " to DuckDB...\n", sep = "")
+
+  entfernungsdaten_ref <- get_source_table_ref(source_config, "Entfernungsdaten", pg_schema)
+
   system.time({
     dbExecute(
       con_duck,
       glue_sql(
         "CREATE TABLE IF NOT EXISTS {`target_table_name`} AS
-        SELECT 
-          pg_src.public.Entfernungsdaten.Gitterzellen_ID,
-          pg_src.public.Entfernungsdaten.Krankenhaus_Standortnummer,
-          pg_src.public.Entfernungsdaten.Fahrzeit_Sekunden,
-          pg_src.public.Entfernungsdaten.Fahrstrecke_Meter
+        SELECT
+          {DBI::SQL(entfernungsdaten_ref)}.Gitterzellen_ID,
+          {DBI::SQL(entfernungsdaten_ref)}.Krankenhaus_Standortnummer,
+          {DBI::SQL(entfernungsdaten_ref)}.Fahrzeit_Sekunden,
+          {DBI::SQL(entfernungsdaten_ref)}.Fahrstrecke_Meter
         FROM {`filter_table_name`}
-        INNER JOIN pg_src.public.Entfernungsdaten
-          ON {`filter_table_name`}.{`filter_column_name`} = pg_src.public.Entfernungsdaten.{`filter_column_name`}",
+        INNER JOIN {DBI::SQL(entfernungsdaten_ref)}
+          ON {`filter_table_name`}.{`filter_column_name`} = {DBI::SQL(entfernungsdaten_ref)}.{`filter_column_name`}",
         .con = con_duck
       )
     )
   })
 
   # -------------------------------------------------------------------- #
-  # Copy tables to local database
+  # Copy supporting tables from source to target DuckDB
   # -------------------------------------------------------------------- #
+  cat("Copying supporting tables...\n")
+  tables_to_copy_final <- if (!is.null(tables_to_copy)) tables_to_copy else relevant_tables
+
   system.time({
-    copy_all_tables_from_postgres_to_duckdb(
+    copy_tables_from_source(
+      source = source_config,
+      con_source = source_conn$con,
       con_duck = con_duck,
-      con_pg = con,
       pg_schema = pg_schema,
-      relevant_tables = relevant_tables,
+      tables = tables_to_copy_final,
       geometry_tables = geometry_tables,
       geometry_column = geometry_column
     )
   })
 
   # -------------------------------------------------------------------- #
-  # Detach DuckDB from Postgres
+  # Disconnect from source
   # -------------------------------------------------------------------- #
-  detach_duckdb_from_postgres(con_duck)
+  cat("Disconnecting from source...\n")
+  disconnect_source(source_config, source_conn)
 
   # -------------------------------------------------------------------- #
   # Get row count of final result
@@ -343,6 +435,7 @@ run_geofilter <- function(
   # -------------------------------------------------------------------- #
   # Export to parquet
   # -------------------------------------------------------------------- #
+  cat("Exporting to Parquet...\n")
   export_all_duckdb_tables_to_parquet(
     con = con_duck,
     output_dir = output_dir,
@@ -354,7 +447,6 @@ run_geofilter <- function(
   # Disconnect if requested
   # -------------------------------------------------------------------- #
   if (disconnect_on_exit) {
-    dbDisconnect(con, shutdown = TRUE)
     dbDisconnect(con_duck, shutdown = TRUE)
   }
 
@@ -362,7 +454,8 @@ run_geofilter <- function(
   list(
     duckdb_path = duckdb_path,
     output_dir = output_dir,
-    table_counts = table_counts
+    table_counts = table_counts,
+    source = source
   )
 }
 

@@ -10,14 +10,18 @@ Geofilter_Funktion(
   output_dir = file.path("data", "nobackup", "Geofilter"),
   preprocessed_output_path = file.path(dirname(duckdb_path),
     paste0(basename(tools::file_path_sans_ext(geofilter_csv_path)), "_preprocessed.csv")),
+  source = "postgres",
+  source_duckdb_path = NULL,
+  pg_options = list(),
+  duckdb_options = list(),
   pg_schema = "public",
   relevant_tables = c("Gitterzellen_Gemeinde_Mapping", "Gitterzellen_Einwohner_Mapping",
     "Verwaltungsgebiete_Mapping", "Gemeindegrenzen_Polygone",
     "Krankenhaus_Standortliste"),
+  tables_to_copy = NULL,
   filter_table_name = "Geofilter",
   filter_column_name = "Gitterzellen_ID",
   target_table_name = "Entfernungsdaten_subset",
-  optimize_postgres_settings = TRUE,
   expose_connections_to_viewer = TRUE,
   print_connection_info = FALSE,
   compression = "SNAPPY",
@@ -33,17 +37,25 @@ Geofilter_Funktion(
 
 \item{preprocessed_output_path}{Path to save the preprocessed geofilter list.}
 
+\item{source}{Data source type: "postgres" or "duckdb" (default: "postgres").}
+
+\item{source_duckdb_path}{Path to DuckDB source database (required if source = "duckdb").}
+
+\item{pg_options}{List of PostgreSQL optimization settings (merged with defaults).}
+
+\item{duckdb_options}{List of DuckDB optimization settings.}
+
 \item{pg_schema}{Schema name in the PostgreSQL database.}
 
-\item{relevant_tables}{Vector of table names to copy from Postgres to DuckDB.}
+\item{relevant_tables}{Vector of table names to copy from source to DuckDB.}
+
+\item{tables_to_copy}{Optional subset of tables to copy (default: all relevant_tables).}
 
 \item{filter_table_name}{Name of the filter table in DuckDB.}
 
 \item{filter_column_name}{Name of the column to filter on.}
 
 \item{target_table_name}{Name of the target table in DuckDB for filtered data.}
-
-\item{optimize_postgres_settings}{Whether to optimize Postgres settings for the query.}
 
 \item{expose_connections_to_viewer}{Whether to expose connections to the viewer.}
 
@@ -62,10 +74,20 @@ All tabular inputs and outputs are expected to be tibbles.
 }
 \examples{
 \dontrun{
+# Using PostgreSQL source (default)
 result <- Geofilter_Funktion(
   geofilter_csv_path = "data/Geofilter_list_NRW.csv",
   duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
   output_dir = "data/nobackup/Geofilter"
+)
+
+# Using DuckDB Komplettexport as source
+result <- Geofilter_Funktion(
+  geofilter_csv_path = "data/Geofilter_list_NRW.csv",
+  duckdb_path = "data/nobackup/Entfernungsdaten_Geofilter.duckdb",
+  output_dir = "data/nobackup/Geofilter",
+  source = "duckdb",
+  source_duckdb_path = "data/nobackup/Komplettexport.duckdb"
 )
 }
 }
