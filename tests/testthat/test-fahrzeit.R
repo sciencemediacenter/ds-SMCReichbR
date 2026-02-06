@@ -14,9 +14,9 @@ test_that("Fahrzeit_Zusammenfassung returns tibble", {
     Fahrzeit_Sekunden = c(1200, 1800),
     Einwohner = c(100, 200)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_s3_class(result, "tbl_df")
 })
 
@@ -27,9 +27,9 @@ test_that("Fahrzeit_Zusammenfassung calculates Einwohner_Gesamt correctly", {
     Fahrzeit_Sekunden = c(1200, 1800),
     Einwohner = c(100, 200)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_equal(result$Einwohner_Gesamt, 300)
 })
 
@@ -37,12 +37,12 @@ test_that("Fahrzeit_Zusammenfassung calculates weighted mean correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A"),
     Gitterzellen_ID = c("G1", "G2"),
-    Fahrzeit_Sekunden = c(1200, 1800),  # 20 min, 30 min
+    Fahrzeit_Sekunden = c(1200, 1800), # 20 min, 30 min
     Einwohner = c(100, 200)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   # Weighted mean: (20*100 + 30*200) / 300 = 8000/300 = 26.666...
   expected_mean <- (20 * 100 + 30 * 200) / 300
   expect_equal(result$Mittlere_Gewichtete_Fahrzeit, expected_mean)
@@ -52,12 +52,12 @@ test_that("Fahrzeit_Zusammenfassung converts seconds to minutes", {
   data <- tibble::tibble(
     Gemeinde = "A",
     Gitterzellen_ID = "G1",
-    Fahrzeit_Sekunden = 1800,  # 30 minutes
+    Fahrzeit_Sekunden = 1800, # 30 minutes
     Einwohner = 100
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_equal(result$Mittlere_Gewichtete_Fahrzeit, 30)
 })
 
@@ -68,9 +68,9 @@ test_that("Fahrzeit_Zusammenfassung groups by .by parameter", {
     Fahrzeit_Sekunden = c(1200, 1800, 2400, 3600),
     Einwohner = c(100, 200, 150, 50)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_equal(nrow(result), 2)
   expect_true("A" %in% result$Gemeinde)
   expect_true("B" %in% result$Gemeinde)
@@ -83,22 +83,22 @@ test_that("Fahrzeit_Zusammenfassung counts Anzahl_Gitterzellen correctly", {
     Fahrzeit_Sekunden = c(1200, 1800, 2400),
     Einwohner = c(100, 200, 150)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_equal(result$Anzahl_Gitterzellen, 3)
 })
 
 test_that("Fahrzeit_Zusammenfassung counts distinct Gitterzellen_ID", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A", "A"),
-    Gitterzellen_ID = c("G1", "G2", "G1", "G2"),  # Only 2 distinct
+    Gitterzellen_ID = c("G1", "G2", "G1", "G2"), # Only 2 distinct
     Fahrzeit_Sekunden = c(1200, 1800, 1200, 1800),
     Einwohner = c(100, 200, 50, 75)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_equal(result$Anzahl_Gitterzellen, 2)
 })
 
@@ -111,9 +111,9 @@ test_that("Fahrzeit_Zusammenfassung without threshold omits Betroffene columns",
     Fahrzeit_Sekunden = 1800,
     Einwohner = 100
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = NULL)
-  
+
   expect_false("Anzahl_Betroffene" %in% names(result))
   expect_false("Prozent_Betroffene" %in% names(result))
   expect_true("Anzahl_Gitterzellen" %in% names(result))
@@ -126,9 +126,9 @@ test_that("Fahrzeit_Zusammenfassung with threshold includes Betroffene columns",
     Fahrzeit_Sekunden = 1800,
     Einwohner = 100
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = 25)
-  
+
   expect_true("Anzahl_Betroffene" %in% names(result))
   expect_true("Prozent_Betroffene" %in% names(result))
   expect_true("Anzahl_Gitterzellen" %in% names(result))
@@ -138,12 +138,12 @@ test_that("Fahrzeit_Zusammenfassung calculates Anzahl_Betroffene correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
     Gitterzellen_ID = c("G1", "G2", "G3"),
-    Fahrzeit_Sekunden = c(1200, 1800, 2400),  # 20, 30, 40 min
+    Fahrzeit_Sekunden = c(1200, 1800, 2400), # 20, 30, 40 min
     Einwohner = c(100, 200, 150)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = 25)
-  
+
   # Only rows with 30 min and 40 min exceed threshold of 25
   # Affected: 200 + 150 = 350
   expect_equal(result$Anzahl_Betroffene, 350)
@@ -153,12 +153,12 @@ test_that("Fahrzeit_Zusammenfassung calculates Prozent_Betroffene correctly", {
   data <- tibble::tibble(
     Gemeinde = c("A", "A", "A"),
     Gitterzellen_ID = c("G1", "G2", "G3"),
-    Fahrzeit_Sekunden = c(1200, 1800, 2400),  # 20, 30, 40 min
+    Fahrzeit_Sekunden = c(1200, 1800, 2400), # 20, 30, 40 min
     Einwohner = c(100, 200, 150)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = 25)
-  
+
   # Affected: 350, Total: 450
   # Percentage: 350/450 * 100 = 77.777...
   expected_percent <- (350 / 450) * 100
@@ -174,9 +174,9 @@ test_that("Fahrzeit_Zusammenfassung handles NA values in Fahrzeit", {
     Fahrzeit_Sekunden = c(1200, NA, 1800),
     Einwohner = c(100, 200, 150)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   # Should calculate weighted mean excluding NA
   # (20*100 + 30*150) / (100 + 150) = 6500/250 = 26
   expected_mean <- (20 * 100 + 30 * 150) / 250
@@ -190,9 +190,9 @@ test_that("Fahrzeit_Zusammenfassung handles NA values in Einwohner", {
     Fahrzeit_Sekunden = c(1200, 1800, 2400),
     Einwohner = c(100, NA, 150)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   # Should sum Einwohner excluding NA: 100 + 150 = 250
   expect_equal(result$Einwohner_Gesamt, 250)
 })
@@ -204,9 +204,9 @@ test_that("Fahrzeit_Zusammenfassung handles empty tibble", {
     Fahrzeit_Sekunden = numeric(0),
     Einwohner = numeric(0)
   )
-  
+
   result <- Fahrzeit_Zusammenfassung(data, Gemeinde)
-  
+
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 0)
 })
@@ -223,9 +223,9 @@ test_that("create_polygon_label creates label column", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   expect_true("label" %in% names(result))
 })
 
@@ -235,9 +235,9 @@ test_that("create_polygon_label returns tibble", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   expect_s3_class(result, "tbl_df")
 })
 
@@ -247,9 +247,9 @@ test_that("create_polygon_label includes Verwaltungsebene in label", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   label_text <- as.character(result$label[[1]])
   expect_true(grepl("TestGemeinde", label_text))
 })
@@ -260,9 +260,9 @@ test_that("create_polygon_label generates HTML tags", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   label_text <- as.character(result$label[[1]])
   expect_true(grepl("<strong>", label_text, fixed = TRUE))
   expect_true(grepl("<br/>", label_text, fixed = TRUE))
@@ -275,9 +275,9 @@ test_that("create_polygon_label label contains HTML content", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   # Label should be character vector with HTML content
   expect_type(result$label, "character")
   # Should contain HTML tags
@@ -292,7 +292,7 @@ test_that("create_polygon_label errors on missing Mittlere_Gewichtete_Fahrzeit",
     Gemeindename = "TestGemeinde",
     Einwohner_Gesamt = 300
   )
-  
+
   expect_error(
     create_polygon_label(data, Gemeindename),
     "Missing required columns"
@@ -304,7 +304,7 @@ test_that("create_polygon_label errors on missing Einwohner_Gesamt", {
     Gemeindename = "TestGemeinde",
     Mittlere_Gewichtete_Fahrzeit = 26.67
   )
-  
+
   expect_error(
     create_polygon_label(data, Gemeindename),
     "Missing required columns"
@@ -319,9 +319,9 @@ test_that("create_polygon_label handles data without threshold columns", {
     Mittlere_Gewichtete_Fahrzeit = 26.67,
     Einwohner_Gesamt = 300
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   label_text <- as.character(result$label[[1]])
   # Should NOT contain "Betroffene" text
   expect_false(grepl("Betroffene", label_text))
@@ -335,9 +335,9 @@ test_that("create_polygon_label handles data with threshold columns", {
     Anzahl_Betroffene = 200,
     Prozent_Betroffene = 66.67
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   label_text <- as.character(result$label[[1]])
   # Should contain "Betroffene" text
   expect_true(grepl("Betroffene", label_text))
@@ -351,9 +351,9 @@ test_that("create_polygon_label includes all threshold fields in label", {
     Anzahl_Betroffene = 200,
     Prozent_Betroffene = 66.67
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   label_text <- as.character(result$label[[1]])
   expect_true(grepl("Prozent Betroffene", label_text))
   expect_true(grepl("Betroffene Einwohner", label_text))
@@ -367,12 +367,12 @@ test_that("create_polygon_label handles multiple rows", {
     Mittlere_Gewichtete_Fahrzeit = c(20, 30, 40),
     Einwohner_Gesamt = c(100, 200, 300)
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   expect_equal(nrow(result), 3)
   expect_equal(length(result$label), 3)
-  
+
   # Check each label is unique and contains correct name
   expect_true(grepl("A", as.character(result$label[[1]])))
   expect_true(grepl("B", as.character(result$label[[2]])))
@@ -385,9 +385,9 @@ test_that("create_polygon_label handles empty tibble", {
     Mittlere_Gewichtete_Fahrzeit = numeric(0),
     Einwohner_Gesamt = numeric(0)
   )
-  
+
   result <- create_polygon_label(data, Gemeindename)
-  
+
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 0)
   expect_true("label" %in% names(result))

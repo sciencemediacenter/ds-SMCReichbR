@@ -290,19 +290,29 @@ copy_table_from_postgres_to_duckdb <- function(
       .con = con_pg
     )
     other_cols <- dbGetQuery(con_pg, cols_query)$column_name
-    
+
     # Quote column names using DBI (handles DB-specific quoting)
-    quoted_cols <- vapply(other_cols, function(col) {
-      as.character(DBI::dbQuoteIdentifier(con_duck, col))
-    }, character(1))
-    quoted_geom <- as.character(DBI::dbQuoteIdentifier(con_duck, geometry_column))
-    
+    quoted_cols <- vapply(
+      other_cols,
+      function(col) {
+        as.character(DBI::dbQuoteIdentifier(con_duck, col))
+      },
+      character(1)
+    )
+    quoted_geom <- as.character(DBI::dbQuoteIdentifier(
+      con_duck,
+      geometry_column
+    ))
+
     # Build SELECT with ST_GeomFromWKB for geometry column
     cols_sql <- paste(
-      c(quoted_cols, paste0("ST_GeomFromWKB(", quoted_geom, ") AS ", quoted_geom)),
+      c(
+        quoted_cols,
+        paste0("ST_GeomFromWKB(", quoted_geom, ") AS ", quoted_geom)
+      ),
       collapse = ", "
     )
-    
+
     sql <- glue_sql(
       "CREATE TABLE IF NOT EXISTS {`table_name`} AS SELECT {DBI::SQL(cols_sql)} FROM pg_src.{`pg_schema`}.{`table_name`}",
       .con = con_duck
@@ -582,13 +592,17 @@ import_chunked_parquet_to_duckdb <- function(
 #' @export
 read_geoparquet <- function(path) {
   if (!requireNamespace("sf", quietly = TRUE)) {
-    stop("Package 'sf' is required to read GeoParquet files. Install with: install.packages('sf')")
+    stop(
+      "Package 'sf' is required to read GeoParquet files. Install with: install.packages('sf')"
+    )
   }
   if (!requireNamespace("arrow", quietly = TRUE)) {
-    stop("Package 'arrow' is required to read GeoParquet files. Install with: install.packages('arrow')")
+    stop(
+      "Package 'arrow' is required to read GeoParquet files. Install with: install.packages('arrow')"
+    )
   }
   require_file_exists(path)
-  
+
   # Read with arrow, then convert to sf
   df <- arrow::read_parquet(path)
   sf::st_as_sf(df)

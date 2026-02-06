@@ -7,7 +7,11 @@
 build_scenario_properties(szenario_tibble)
 }
 \arguments{
-\item{szenario_tibble}{Filtered tibble from \code{\link[=filter_by_coverage]{filter_by_coverage()}}.}
+\item{szenario_tibble}{Filtered tibble from \code{\link[=filter_by_coverage]{filter_by_coverage()}}.
+
+AGS: \code{Gemeindeschluessel}
+GEN: \code{Gemeindename}
+EWZ: \code{Einwohner_Gesamt} (formatted with \code{format_ewz()})}
 }
 \value{
 A tibble with columns \code{AGS}, \code{GEN}, \code{EWZ},

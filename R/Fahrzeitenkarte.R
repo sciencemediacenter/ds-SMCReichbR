@@ -227,7 +227,7 @@ Szenario_Berechnung <- function(
   # Validate inputs
   Verwaltungsebene <- match.arg(Verwaltungsebene)
   require_file_exists(krankenhaus_standortnummern_csv_path)
-  
+
   # Read scenario CSV
   krankenhaus_ids <- read_csv(
     krankenhaus_standortnummern_csv_path,
@@ -239,10 +239,16 @@ Szenario_Berechnung <- function(
   if (!"Krankenhaus_Standortnummer" %in% names(krankenhaus_ids)) {
     stop("CSV must contain column 'Krankenhaus_Standortnummer'")
   }
-  
+
   # Register scenario as temporary table in DuckDB
-  dbWriteTable(con, "temp_scenario", krankenhaus_ids, temporary = TRUE, overwrite = TRUE)
-  
+  dbWriteTable(
+    con,
+    "temp_scenario",
+    krankenhaus_ids,
+    temporary = TRUE,
+    overwrite = TRUE
+  )
+
   # Query: find minimum travel time per grid cell for scenario hospitals
   query <- '
     WITH joined_data AS (
@@ -281,9 +287,9 @@ Szenario_Berechnung <- function(
     LEFT JOIN "Gitterzellen_mit_Einwohnern_Gemeinde_Mapping" ge
         ON fd."Gitterzellen_ID" = ge."Gitterzellen_ID"
   '
-  
+
   grid_data <- as_tibble(dbGetQuery(con, query))
-  
+
   # Determine grouping columns based on Verwaltungsebene
   grouping_info <- list(
     Gemeinde = list(
@@ -303,23 +309,33 @@ Szenario_Berechnung <- function(
       name_col = "Bundesland"
     )
   )
-  
+
   id_col <- grouping_info[[Verwaltungsebene]]$id_col
   name_col <- grouping_info[[Verwaltungsebene]]$name_col
-  
+
   # Get Verwaltungsgebiete_Mapping for joining
-  verwaltung <- as_tibble(dbGetQuery(con, 'SELECT * FROM "Verwaltungsgebiete_Mapping"'))
-  
+  verwaltung <- as_tibble(dbGetQuery(
+    con,
+    'SELECT * FROM "Verwaltungsgebiete_Mapping"'
+  ))
+
   # Join grid data with administrative mapping
   grid_data <- grid_data |>
     left_join(
-      verwaltung |> select(Gemeindeschluessel, all_of(c(id_col, name_col, "Bundesland", "Bundesland_ID"))),
+      verwaltung |>
+        select(
+          Gemeindeschluessel,
+          all_of(c(id_col, name_col, "Bundesland", "Bundesland_ID"))
+        ),
       by = "Gemeindeschluessel"
     )
-  
+
   # Calculate total inhabited grid cells per administrative unit
   # (This replaces mv_bewohnte_gitterzellen_pro_gemeinde)
-  bewohnte_gitterzellen <- as_tibble(dbGetQuery(con, glue('
+  bewohnte_gitterzellen <- as_tibble(dbGetQuery(
+    con,
+    glue(
+      '
     SELECT 
       vm."{id_col}",
       COUNT(DISTINCT ge."Gitterzellen_ID") AS "Anzahl_bewohnte_Gitterzellen"
@@ -327,21 +343,25 @@ Szenario_Berechnung <- function(
     LEFT JOIN "Verwaltungsgebiete_Mapping" vm
       ON ge."Gemeindeschluessel" = vm."Gemeindeschluessel"
     GROUP BY vm."{id_col}"
-  ')))
-  
+  '
+    )
+  ))
+
   # Aggregate using Fahrzeit_Zusammenfassung
   summary <- grid_data |>
     Fahrzeit_Zusammenfassung(
       .by = all_of(c(id_col, name_col, "Bundesland", "Bundesland_ID")),
       Grenzwert_Minuten = Grenzwert_Minuten
     )
-  
+
   # Join with bewohnte_gitterzellen and calculate Prozent_Abgedeckt_pro_Gemeinde
   result <- summary |>
     left_join(bewohnte_gitterzellen, by = id_col) |>
     mutate(
-      Prozent_Abgedeckt_pro_Gemeinde = Anzahl_Gitterzellen / Anzahl_bewohnte_Gitterzellen * 100
+      Prozent_Abgedeckt_pro_Gemeinde = Anzahl_Gitterzellen /
+        Anzahl_bewohnte_Gitterzellen *
+        100
     )
-  
+
   tibble::as_tibble(result)
 }

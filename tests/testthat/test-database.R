@@ -577,25 +577,34 @@ test_that("export_geometry_table_to_geoparquet creates valid GeoParquet", {
   skip_if_no_duckdb()
   skip_if_not_installed("sf")
   skip_if_not_installed("arrow")
-  
+
   db_path <- withr::local_tempfile(fileext = ".duckdb")
   output_path <- withr::local_tempfile(fileext = ".parquet")
-  
+
   con <- connect_to_duckdb_db(db_path)
   on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  
+
   # Load spatial extension and create a simple point geometry
   dbExecute(con, "INSTALL spatial; LOAD spatial;")
-  dbExecute(con, "CREATE TABLE test_geo (id INTEGER, name VARCHAR, geometry GEOMETRY)")
-  dbExecute(con, "INSERT INTO test_geo VALUES (1, 'Point_A', ST_Point(8.0, 50.0))")
-  dbExecute(con, "INSERT INTO test_geo VALUES (2, 'Point_B', ST_Point(9.0, 51.0))")
-  
+  dbExecute(
+    con,
+    "CREATE TABLE test_geo (id INTEGER, name VARCHAR, geometry GEOMETRY)"
+  )
+  dbExecute(
+    con,
+    "INSERT INTO test_geo VALUES (1, 'Point_A', ST_Point(8.0, 50.0))"
+  )
+  dbExecute(
+    con,
+    "INSERT INTO test_geo VALUES (2, 'Point_B', ST_Point(9.0, 51.0))"
+  )
+
   # Export to GeoParquet
   export_geometry_table_to_geoparquet(con, "test_geo", output_path)
-  
+
   expect_true(file.exists(output_path))
   expect_gt(file.size(output_path), 0)
-  
+
   # Read back with arrow+sf
   df <- arrow::read_parquet(output_path)
   result <- sf::st_as_sf(df)
@@ -608,23 +617,29 @@ test_that("export_geometry_table_to_geoparquet handles polygon data", {
   skip_if_no_duckdb()
   skip_if_not_installed("sf")
   skip_if_not_installed("arrow")
-  
+
   db_path <- withr::local_tempfile(fileext = ".duckdb")
   output_path <- withr::local_tempfile(fileext = ".parquet")
-  
+
   con <- connect_to_duckdb_db(db_path)
   on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  
+
   # Create a simple polygon
   dbExecute(con, "INSTALL spatial; LOAD spatial;")
-  dbExecute(con, "CREATE TABLE test_poly (id INTEGER, name VARCHAR, geometry GEOMETRY)")
-  dbExecute(con, "INSERT INTO test_poly VALUES (1, 'Square', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))'))")
-  
+  dbExecute(
+    con,
+    "CREATE TABLE test_poly (id INTEGER, name VARCHAR, geometry GEOMETRY)"
+  )
+  dbExecute(
+    con,
+    "INSERT INTO test_poly VALUES (1, 'Square', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))'))"
+  )
+
   # Export
   export_geometry_table_to_geoparquet(con, "test_poly", output_path)
-  
+
   expect_true(file.exists(output_path))
-  
+
   # Verify polygon type with arrow+sf
   df <- arrow::read_parquet(output_path)
   result <- sf::st_as_sf(df)
@@ -637,20 +652,23 @@ test_that("read_geoparquet returns sf object", {
   skip_if_no_duckdb()
   skip_if_not_installed("sf")
   skip_if_not_installed("arrow")
-  
+
   # Create a GeoParquet file
   db_path <- withr::local_tempfile(fileext = ".duckdb")
   output_path <- withr::local_tempfile(fileext = ".parquet")
-  
+
   con <- connect_to_duckdb_db(db_path)
   on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  
+
   dbExecute(con, "INSTALL spatial; LOAD spatial;")
-  dbExecute(con, "CREATE TABLE geo_test (id INTEGER, name VARCHAR, geometry GEOMETRY)")
+  dbExecute(
+    con,
+    "CREATE TABLE geo_test (id INTEGER, name VARCHAR, geometry GEOMETRY)"
+  )
   dbExecute(con, "INSERT INTO geo_test VALUES (1, 'Test', ST_Point(8.0, 50.0))")
-  
+
   export_geometry_table_to_geoparquet(con, "geo_test", output_path)
-  
+
   # Read with our helper function
   result <- read_geoparquet(output_path)
   expect_s3_class(result, "sf")
@@ -660,7 +678,7 @@ test_that("read_geoparquet returns sf object", {
 
 test_that("read_geoparquet requires sf package", {
   skip_if_not_installed("sf")
-  
+
   # Can't easily test the error without unloading sf
   # Just verify the function exists and has correct structure
   expect_type(read_geoparquet, "closure")
@@ -670,35 +688,36 @@ test_that("export_all_duckdb_tables_to_parquet routes geometry tables correctly"
   skip_if_no_duckdb()
   skip_if_not_installed("sf")
   skip_if_not_installed("arrow")
-  
+
   db_path <- withr::local_tempfile(fileext = ".duckdb")
   output_dir <- withr::local_tempdir()
-  
+
   con <- connect_to_duckdb_db(db_path)
   on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  
+
   # Create one regular table and one geometry table
   dbExecute(con, "CREATE TABLE regular_table (id INTEGER, value VARCHAR)")
   dbExecute(con, "INSERT INTO regular_table VALUES (1, 'test')")
-  
+
   dbExecute(con, "INSTALL spatial; LOAD spatial;")
   dbExecute(con, "CREATE TABLE geo_table (id INTEGER, geometry GEOMETRY)")
   dbExecute(con, "INSERT INTO geo_table VALUES (1, ST_Point(8.0, 50.0))")
-  
+
   # Export with geometry_tables_list
   export_all_duckdb_tables_to_parquet(
-    con, output_dir,
+    con,
+    output_dir,
     large_tables_list = character(0),
     geometry_tables_list = c("geo_table")
   )
-  
+
   # Both files should exist
   regular_path <- file.path(output_dir, "regular_table.parquet")
   geo_path <- file.path(output_dir, "geo_table.parquet")
-  
+
   expect_true(file.exists(regular_path))
   expect_true(file.exists(geo_path))
-  
+
   # Geometry table should be readable as sf via arrow
   df <- arrow::read_parquet(geo_path)
   geo_result <- sf::st_as_sf(df)

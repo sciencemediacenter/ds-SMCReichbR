@@ -189,7 +189,10 @@ Klinikfilter_Funktion <- function(
   )
 
   if (inherits(source_config, "pg_source")) {
-    temp_data <- dbGetQuery(source_conn$con, "SELECT * FROM temp_krankenhaus_ids")
+    temp_data <- dbGetQuery(
+      source_conn$con,
+      "SELECT * FROM temp_krankenhaus_ids"
+    )
   } else {
     temp_data <- krankenhaus_ids
   }
@@ -200,7 +203,11 @@ Klinikfilter_Funktion <- function(
   # -------------------------------------------------------------------- #
   cat("Filtering data and streaming from ", source, " to DuckDB...\n", sep = "")
 
-  entfernungsdaten_ref <- get_source_table_ref(source_config, "Entfernungsdaten", pg_schema)
+  entfernungsdaten_ref <- get_source_table_ref(
+    source_config,
+    "Entfernungsdaten",
+    pg_schema
+  )
 
   system.time({
     dbExecute(
@@ -224,7 +231,11 @@ Klinikfilter_Funktion <- function(
   # Copy supporting tables from source to target DuckDB
   # -------------------------------------------------------------------- #
   cat("Copying supporting tables...\n")
-  tables_to_copy_final <- if (!is.null(tables_to_copy)) tables_to_copy else relevant_tables
+  tables_to_copy_final <- if (!is.null(tables_to_copy)) {
+    tables_to_copy
+  } else {
+    relevant_tables
+  }
 
   system.time({
     copy_tables_from_source(

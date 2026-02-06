@@ -309,7 +309,6 @@ create_source_config <- function(
 
     # Create source with merged options
     do.call(postgres_source, merged_settings)
-
   } else if (source == "duckdb") {
     if (is.null(source_duckdb_path)) {
       stop("source_duckdb_path is required when source = 'duckdb'")
@@ -322,7 +321,6 @@ create_source_config <- function(
     )
 
     do.call(duckdb_source, duckdb_args)
-
   } else {
     stop("source must be 'postgres' or 'duckdb', got: ", source)
   }

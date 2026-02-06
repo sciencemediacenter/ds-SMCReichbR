@@ -360,7 +360,10 @@ run_geofilter <- function(
         remote_Gitterzellen_Gemeinde_Mapping,
         by = "Gemeindeschluessel"
       ) |>
-      inner_join(remote_Gitterzellen_Einwohner_Mapping, by = "Gitterzellen_ID") |>
+      inner_join(
+        remote_Gitterzellen_Einwohner_Mapping,
+        by = "Gitterzellen_ID"
+      ) |>
       select(Gitterzellen_ID) |>
       pull()
 
@@ -373,7 +376,6 @@ run_geofilter <- function(
       overwrite = TRUE
     )
     dbExecute(source_conn$con, "ANALYZE temp_gitterzellen_ids;")
-
   } else if (inherits(source_config, "duckdb_source")) {
     # DuckDB source: query directly from attached database
     Gitterzellen_IDs_to_analyze <- dbGetQuery(
@@ -392,7 +394,12 @@ run_geofilter <- function(
     )$Gitterzellen_ID
   }
 
-  cat("Found ", length(Gitterzellen_IDs_to_analyze), " Gitterzellen IDs to filter.\n", sep = "")
+  cat(
+    "Found ",
+    length(Gitterzellen_IDs_to_analyze),
+    " Gitterzellen IDs to filter.\n",
+    sep = ""
+  )
 
   # -------------------------------------------------------------------- #
   # Create filter table in target DuckDB
@@ -406,7 +413,10 @@ run_geofilter <- function(
   )
 
   if (inherits(source_config, "pg_source")) {
-    temp_data <- dbGetQuery(source_conn$con, "SELECT * FROM temp_gitterzellen_ids")
+    temp_data <- dbGetQuery(
+      source_conn$con,
+      "SELECT * FROM temp_gitterzellen_ids"
+    )
   } else {
     temp_data <- tibble(Gitterzellen_ID = Gitterzellen_IDs_to_analyze)
   }
@@ -417,7 +427,11 @@ run_geofilter <- function(
   # -------------------------------------------------------------------- #
   cat("Filtering data and streaming from ", source, " to DuckDB...\n", sep = "")
 
-  entfernungsdaten_ref <- get_source_table_ref(source_config, "Entfernungsdaten", pg_schema)
+  entfernungsdaten_ref <- get_source_table_ref(
+    source_config,
+    "Entfernungsdaten",
+    pg_schema
+  )
 
   system.time({
     dbExecute(
@@ -441,7 +455,11 @@ run_geofilter <- function(
   # Copy supporting tables from source to target DuckDB
   # -------------------------------------------------------------------- #
   cat("Copying supporting tables...\n")
-  tables_to_copy_final <- if (!is.null(tables_to_copy)) tables_to_copy else relevant_tables
+  tables_to_copy_final <- if (!is.null(tables_to_copy)) {
+    tables_to_copy
+  } else {
+    relevant_tables
+  }
 
   system.time({
     copy_tables_from_source(

@@ -43,7 +43,13 @@ format_fahrtzeit <- function(x, digits = 1L) {
     is.na(x),
     "keine Daten",
     paste0(
-      formatC(x, format = "f", digits = digits, big.mark = " ", decimal.mark = ","),
+      formatC(
+        x,
+        format = "f",
+        digits = digits,
+        big.mark = " ",
+        decimal.mark = ","
+      ),
       " Minuten"
     )
   )
@@ -72,14 +78,32 @@ format_fahrtzeit <- function(x, digits = 1L) {
 #' @export
 format_ewz <- function(x) {
   small_space <- '<span style="font-size:50%;"> </span>'
-  mapply(function(val) {
-    if (is.na(val)) return("keine Daten")
-    if (val == floor(val)) {
-      formatC(val, format = "f", digits = 0, big.mark = small_space, decimal.mark = ",")
-    } else {
-      formatC(val, format = "f", digits = 2, big.mark = small_space, decimal.mark = ",")
-    }
-  }, x, USE.NAMES = FALSE)
+  mapply(
+    function(val) {
+      if (is.na(val)) {
+        return("keine Daten")
+      }
+      if (val == floor(val)) {
+        formatC(
+          val,
+          format = "f",
+          digits = 0,
+          big.mark = small_space,
+          decimal.mark = ","
+        )
+      } else {
+        formatC(
+          val,
+          format = "f",
+          digits = 2,
+          big.mark = small_space,
+          decimal.mark = ","
+        )
+      }
+    },
+    x,
+    USE.NAMES = FALSE
+  )
 }
 
 
@@ -102,7 +126,10 @@ format_ewz <- function(x) {
 #' @export
 filter_by_coverage <- function(szenario_tibble, grenzwert_abdeckung = 99) {
   stopifnot("Prozent_Abgedeckt_pro_Gemeinde" %in% names(szenario_tibble))
-  dplyr::filter(szenario_tibble, Prozent_Abgedeckt_pro_Gemeinde >= grenzwert_abdeckung)
+  dplyr::filter(
+    szenario_tibble,
+    Prozent_Abgedeckt_pro_Gemeinde >= grenzwert_abdeckung
+  )
 }
 
 
@@ -117,14 +144,20 @@ filter_by_coverage <- function(szenario_tibble, grenzwert_abdeckung = 99) {
 #'
 #' @param szenario_tibble Filtered tibble from [filter_by_coverage()].
 #'
+#' AGS: `Gemeindeschluessel`
+#' GEN: `Gemeindename`
+#' EWZ: `Einwohner_Gesamt` (formatted with `format_ewz()`)
+#'
 #' @return A tibble with columns `AGS`, `GEN`, `EWZ`,
 #'   `fahrtzeit_scenario_1`, `fahrtzeit_scenario_1_str`.
 #'
 #' @export
 build_scenario_properties <- function(szenario_tibble) {
   required <- c(
-    "Gemeindeschluessel", "Gemeindename",
-    "Einwohner_Gesamt", "Mittlere_Gewichtete_Fahrzeit"
+    "Gemeindeschluessel",
+    "Gemeindename",
+    "Einwohner_Gesamt",
+    "Mittlere_Gewichtete_Fahrzeit"
   )
   missing <- setdiff(required, names(szenario_tibble))
   if (length(missing) > 0) {
@@ -214,7 +247,9 @@ join_properties_to_polygons <- function(gemeinde_sf, scenario_props) {
     dplyr::mutate(
       EWZ = ifelse(is.na(EWZ), NA_character_, EWZ),
       fahrtzeit_scenario_1_str = ifelse(
-        is.na(fahrtzeit_scenario_1_str), NA_character_, fahrtzeit_scenario_1_str
+        is.na(fahrtzeit_scenario_1_str),
+        NA_character_,
+        fahrtzeit_scenario_1_str
       )
     )
 
@@ -286,9 +321,14 @@ compute_percentage_covered <- function(szenario_tibble) {
   }
 
   total_scenario <- sum(szenario_tibble$Anzahl_Gitterzellen, na.rm = TRUE)
-  total_inhabited <- sum(szenario_tibble$Anzahl_bewohnte_Gitterzellen, na.rm = TRUE)
+  total_inhabited <- sum(
+    szenario_tibble$Anzahl_bewohnte_Gitterzellen,
+    na.rm = TRUE
+  )
 
-  if (total_inhabited == 0) return(0)
+  if (total_inhabited == 0) {
+    return(0)
+  }
   total_scenario / total_inhabited * 100
 }
 
@@ -311,10 +351,14 @@ compute_percentage_covered <- function(szenario_tibble) {
 sf_to_feature_list <- function(
   sf_data,
   property_cols = c(
-    "AGS", "GEN", "EWZ",
-    "fahrtzeit_scenario_1_str", "fahrtzeit_scenario_2_str",
+    "AGS",
+    "GEN",
+    "EWZ",
+    "fahrtzeit_scenario_1_str",
+    "fahrtzeit_scenario_2_str",
     "fahrtzeit_difference_str",
-    "fahrtzeit_scenario_1", "fahrtzeit_scenario_2",
+    "fahrtzeit_scenario_1",
+    "fahrtzeit_scenario_2",
     "fahrtzeit_difference"
   )
 ) {
@@ -474,8 +518,14 @@ szenario_to_geojson <- function(
   )
 
   if (as_json) {
-    jsonlite::toJSON(fc, auto_unbox = TRUE, null = "null", na = "null",
-                     pretty = TRUE, force = TRUE)
+    jsonlite::toJSON(
+      fc,
+      auto_unbox = TRUE,
+      null = "null",
+      na = "null",
+      pretty = TRUE,
+      force = TRUE
+    )
   } else {
     fc
   }

@@ -1,23 +1,23 @@
 utils::globalVariables(c(
-    "Fahrzeit_Sekunden_Szenario",
-    "Fahrzeit_Sekunden_Referenz"
+  "Fahrzeit_Sekunden_Szenario",
+  "Fahrzeit_Sekunden_Referenz"
 )) # created during left_join
 
 utils::globalVariables(c(
-    "Einwohner",
-    "Fahrzeit_Differenz_Minuten",
-    "Anzahl_Betroffene",
-    "Einwohner_Gesamt",
-    ".by",
-    "Fahrzeit_Sekunden",
-    "Fahrzeit_Minuten",
-    "Ueber_Grenzwert",
-    "Mittlere_Gewichtete_Fahrzeit_formatted",
-    "Einwohner_Gesamt_formatted",
-    "Anzahl_Betroffene_formatted",
-    "Prozent_Betroffene_formatted",
-    "label",
-    "Mittlere_Gewichtete_Fahrzeit_Differenz_formatted"
+  "Einwohner",
+  "Fahrzeit_Differenz_Minuten",
+  "Anzahl_Betroffene",
+  "Einwohner_Gesamt",
+  ".by",
+  "Fahrzeit_Sekunden",
+  "Fahrzeit_Minuten",
+  "Ueber_Grenzwert",
+  "Mittlere_Gewichtete_Fahrzeit_formatted",
+  "Einwohner_Gesamt_formatted",
+  "Anzahl_Betroffene_formatted",
+  "Prozent_Betroffene_formatted",
+  "label",
+  "Mittlere_Gewichtete_Fahrzeit_Differenz_formatted"
 ))
 
 
@@ -42,53 +42,53 @@ utils::globalVariables(c(
 #'
 #' @export
 Fahrzeit_Differenz_Zusammenfassung <- function(
-    reference_data,
-    scenario_data,
-    .by,
-    by = c(
-        "Gitterzellen_ID",
-        "Einwohner",
-        "Gemeindename",
-        "Gemeindeschluessel",
-        "Bundesland",
-        "Regierungsbezirk",
-        "Kreis",
-        "Bundesland_ID",
-        "Regierungsbezirk_ID",
-        "Kreis_ID",
-        "Gemeinde_ID",
-        "Datum_Gitter"
-    )
+  reference_data,
+  scenario_data,
+  .by,
+  by = c(
+    "Gitterzellen_ID",
+    "Einwohner",
+    "Gemeindename",
+    "Gemeindeschluessel",
+    "Bundesland",
+    "Regierungsbezirk",
+    "Kreis",
+    "Bundesland_ID",
+    "Regierungsbezirk_ID",
+    "Kreis_ID",
+    "Gemeinde_ID",
+    "Datum_Gitter"
+  )
 ) {
-    result <- reference_data |>
-        left_join(
-            scenario_data,
-            by = by,
-            suffix = c("_Referenz", "_Szenario")
-        ) |>
-         # Differenz: Szenario (tendenziell laengere Fahrzeiten) - Referenz
-        mutate(
-            Fahrzeit_Differenz_Minuten = (Fahrzeit_Sekunden_Szenario -
-                Fahrzeit_Sekunden_Referenz) /
-                60
-        )
-    summary <- result |>
-        summarise(
-            Einwohner_Gesamt = sum(Einwohner, na.rm = TRUE),
-            Mittlere_Gewichtete_Fahrzeit_Differenz = weighted.mean(
-                Fahrzeit_Differenz_Minuten,
-                w = Einwohner,
-                na.rm = TRUE
-            ),
-            Anzahl_Betroffene = sum(
-                Einwohner[Fahrzeit_Differenz_Minuten > 0],
-                na.rm = TRUE
-            ),
-            Prozent_Betroffene = Anzahl_Betroffene / Einwohner_Gesamt * 100,
-            .by = {{ .by }}
-        )
+  result <- reference_data |>
+    left_join(
+      scenario_data,
+      by = by,
+      suffix = c("_Referenz", "_Szenario")
+    ) |>
+    # Differenz: Szenario (tendenziell laengere Fahrzeiten) - Referenz
+    mutate(
+      Fahrzeit_Differenz_Minuten = (Fahrzeit_Sekunden_Szenario -
+        Fahrzeit_Sekunden_Referenz) /
+        60
+    )
+  summary <- result |>
+    summarise(
+      Einwohner_Gesamt = sum(Einwohner, na.rm = TRUE),
+      Mittlere_Gewichtete_Fahrzeit_Differenz = weighted.mean(
+        Fahrzeit_Differenz_Minuten,
+        w = Einwohner,
+        na.rm = TRUE
+      ),
+      Anzahl_Betroffene = sum(
+        Einwohner[Fahrzeit_Differenz_Minuten > 0],
+        na.rm = TRUE
+      ),
+      Prozent_Betroffene = Anzahl_Betroffene / Einwohner_Gesamt * 100,
+      .by = {{ .by }}
+    )
 
-    tibble::as_tibble(summary)
+  tibble::as_tibble(summary)
 }
 
 #' Create HTML Labels for Travel Time Difference Polygons
@@ -106,63 +106,63 @@ Fahrzeit_Differenz_Zusammenfassung <- function(
 #'
 #' @export
 create_polygon_label_differenz <- function(data, Verwaltungsebene) {
-    # Define columns to format
-    base_cols <- c("Mittlere_Gewichtete_Fahrzeit_Differenz", "Einwohner_Gesamt")
-    threshold_cols <- c("Anzahl_Betroffene", "Prozent_Betroffene")
-    has_threshold_data <- all(threshold_cols %in% names(data))
+  # Define columns to format
+  base_cols <- c("Mittlere_Gewichtete_Fahrzeit_Differenz", "Einwohner_Gesamt")
+  threshold_cols <- c("Anzahl_Betroffene", "Prozent_Betroffene")
+  has_threshold_data <- all(threshold_cols %in% names(data))
 
-    # Check for required columns
-    missing_base <- setdiff(base_cols, names(data))
-    if (length(missing_base) > 0) {
-        stop("Missing required columns: ", paste(missing_base, collapse = ", "))
-    }
+  # Check for required columns
+  missing_base <- setdiff(base_cols, names(data))
+  if (length(missing_base) > 0) {
+    stop("Missing required columns: ", paste(missing_base, collapse = ", "))
+  }
 
-    # Format columns
-    cols_to_format <- if (has_threshold_data) {
-        c(base_cols, threshold_cols)
-    } else {
-        base_cols
-    }
-    result <- format_label_columns(data, cols_to_format)
+  # Format columns
+  cols_to_format <- if (has_threshold_data) {
+    c(base_cols, threshold_cols)
+  } else {
+    base_cols
+  }
+  result <- format_label_columns(data, cols_to_format)
 
-    # Create the HTML label based on available data
-    if (has_threshold_data) {
-        result <- result |>
-            mutate(
-                label = paste0(
-                    "<strong>",
-                    {{ Verwaltungsebene }},
-                    "</strong>",
-                    "<br/>Fahrzeit-Differenz in min: ",
-                    Mittlere_Gewichtete_Fahrzeit_Differenz_formatted,
-                    "<br/>Einwohner:innen: ",
-                    Einwohner_Gesamt_formatted,
-                    "<br/>Betroffene Einwohner:innen: ",
-                    Anzahl_Betroffene_formatted,
-                    "<br/>Prozent Betroffene: ",
-                    Prozent_Betroffene_formatted,
-                    "%"
-                )
-            )
-    } else {
-        result <- result |>
-            mutate(
-                label = paste0(
-                    "<strong>",
-                    {{ Verwaltungsebene }},
-                    "</strong>",
-                    "<br/>Fahrzeit-Differenz in min: ",
-                    Mittlere_Gewichtete_Fahrzeit_Differenz_formatted,
-                    "<br/>Einwohner:innen: ",
-                    Einwohner_Gesamt_formatted
-                )
-            )
-    }
-
-    # Convert to HTML tags row by row
+  # Create the HTML label based on available data
+  if (has_threshold_data) {
     result <- result |>
-        rowwise() |>
-        mutate(label = HTML(label))
+      mutate(
+        label = paste0(
+          "<strong>",
+          {{ Verwaltungsebene }},
+          "</strong>",
+          "<br/>Fahrzeit-Differenz in min: ",
+          Mittlere_Gewichtete_Fahrzeit_Differenz_formatted,
+          "<br/>Einwohner:innen: ",
+          Einwohner_Gesamt_formatted,
+          "<br/>Betroffene Einwohner:innen: ",
+          Anzahl_Betroffene_formatted,
+          "<br/>Prozent Betroffene: ",
+          Prozent_Betroffene_formatted,
+          "%"
+        )
+      )
+  } else {
+    result <- result |>
+      mutate(
+        label = paste0(
+          "<strong>",
+          {{ Verwaltungsebene }},
+          "</strong>",
+          "<br/>Fahrzeit-Differenz in min: ",
+          Mittlere_Gewichtete_Fahrzeit_Differenz_formatted,
+          "<br/>Einwohner:innen: ",
+          Einwohner_Gesamt_formatted
+        )
+      )
+  }
 
-    tibble::as_tibble(result)
+  # Convert to HTML tags row by row
+  result <- result |>
+    rowwise() |>
+    mutate(label = HTML(label))
+
+  tibble::as_tibble(result)
 }

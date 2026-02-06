@@ -62,11 +62,14 @@ test_that("format_ewz uses 2 decimals for non-integer values", {
 
 test_that("format_ewz is vectorized", {
   result <- format_ewz(c(1000, NA, 500))
-  expect_equal(result, c(
-    paste0("1", small_space, "000"),
-    "keine Daten",
-    "500"
-  ))
+  expect_equal(
+    result,
+    c(
+      paste0("1", small_space, "000"),
+      "keine Daten",
+      "500"
+    )
+  )
 })
 
 
@@ -118,10 +121,16 @@ test_that("build_scenario_properties creates expected columns", {
 
   result <- build_scenario_properties(data)
 
-  expect_equal(names(result), c(
-    "AGS", "GEN", "EWZ",
-    "fahrtzeit_scenario_1", "fahrtzeit_scenario_1_str"
-  ))
+  expect_equal(
+    names(result),
+    c(
+      "AGS",
+      "GEN",
+      "EWZ",
+      "fahrtzeit_scenario_1",
+      "fahrtzeit_scenario_1_str"
+    )
+  )
   expect_equal(result$AGS, "09162000")
   expect_equal(result$GEN, "München")
   expect_equal(result$fahrtzeit_scenario_1, 12.345)
@@ -164,16 +173,25 @@ test_that("build_scenario_properties errors on missing columns", {
 # ============================================================================
 
 test_that("add_empty_scenario2_columns adds NA columns", {
-  data <- tibble::tibble(AGS = "A", GEN = "Test", EWZ = "100",
-                         fahrtzeit_scenario_1 = 10,
-                         fahrtzeit_scenario_1_str = "10,0 Minuten")
+  data <- tibble::tibble(
+    AGS = "A",
+    GEN = "Test",
+    EWZ = "100",
+    fahrtzeit_scenario_1 = 10,
+    fahrtzeit_scenario_1_str = "10,0 Minuten"
+  )
 
   result <- add_empty_scenario2_columns(data)
 
-  expect_true(all(c(
-    "fahrtzeit_scenario_2", "fahrtzeit_scenario_2_str",
-    "fahrtzeit_difference", "fahrtzeit_difference_str"
-  ) %in% names(result)))
+  expect_true(all(
+    c(
+      "fahrtzeit_scenario_2",
+      "fahrtzeit_scenario_2_str",
+      "fahrtzeit_difference",
+      "fahrtzeit_difference_str"
+    ) %in%
+      names(result)
+  ))
   expect_true(all(is.na(result$fahrtzeit_scenario_2)))
   expect_true(all(is.na(result$fahrtzeit_difference)))
 })
@@ -252,7 +270,11 @@ test_that("build_scenario_summary handles empty ids", {
 
 test_that("assemble_feature_collection creates valid structure", {
   features <- list(
-    list(type = "Feature", properties = list(AGS = "A"), geometry = list(type = "Point", coordinates = c(0, 0)))
+    list(
+      type = "Feature",
+      properties = list(AGS = "A"),
+      geometry = list(type = "Point", coordinates = c(0, 0))
+    )
   )
   s1 <- build_scenario_summary(c("id1"), 90)
 
@@ -274,8 +296,16 @@ test_that("join_properties_to_polygons joins correctly", {
   skip_if_not_installed("sf")
 
   # Create a simple sf object with 2 polygons
-  poly1 <- sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), ncol = 2, byrow = TRUE)))
-  poly2 <- sf::st_polygon(list(matrix(c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0), ncol = 2, byrow = TRUE)))
+  poly1 <- sf::st_polygon(list(matrix(
+    c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
+  poly2 <- sf::st_polygon(list(matrix(
+    c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
   gemeinde_sf <- sf::st_sf(
     Gemeindeschluessel = c("A", "B"),
     Gemeindename = c("Stadt A", "Stadt B"),
@@ -317,7 +347,11 @@ test_that("join_properties_to_polygons joins correctly", {
 test_that("sf_to_feature_list creates correct feature structure", {
   skip_if_not_installed("sf")
 
-  poly <- sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), ncol = 2, byrow = TRUE)))
+  poly <- sf::st_polygon(list(matrix(
+    c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
   sf_data <- sf::st_sf(
     AGS = "A",
     GEN = "Test",
@@ -370,9 +404,21 @@ test_that("szenario_to_geojson produces valid GeoJSON structure", {
     Bundesland_ID = c("09", "09")
   )
 
-  poly1 <- sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), ncol = 2, byrow = TRUE)))
-  poly2 <- sf::st_polygon(list(matrix(c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0), ncol = 2, byrow = TRUE)))
-  poly3 <- sf::st_polygon(list(matrix(c(2, 0, 3, 0, 3, 1, 2, 1, 2, 0), ncol = 2, byrow = TRUE)))
+  poly1 <- sf::st_polygon(list(matrix(
+    c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
+  poly2 <- sf::st_polygon(list(matrix(
+    c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
+  poly3 <- sf::st_polygon(list(matrix(
+    c(2, 0, 3, 0, 3, 1, 2, 1, 2, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
   gemeinde_sf <- sf::st_sf(
     Gemeindeschluessel = c("A", "B", "C"),
     Gemeindename = c("Stadt A", "Stadt B", "Stadt C"),
@@ -380,7 +426,8 @@ test_that("szenario_to_geojson produces valid GeoJSON structure", {
   )
 
   result <- szenario_to_geojson(
-    szenario, gemeinde_sf,
+    szenario,
+    gemeinde_sf,
     scenario_ids = c("H1", "H2"),
     as_json = FALSE
   )
@@ -388,7 +435,7 @@ test_that("szenario_to_geojson produces valid GeoJSON structure", {
   # Top-level structure
   expect_equal(result$type, "FeatureCollection")
   expect_equal(result$crs$type, "name")
-  expect_equal(length(result$features), 3)  # All 3 polygons
+  expect_equal(length(result$features), 3) # All 3 polygons
 
   # Scenario1 metadata
   expect_equal(result$scenario1$list, list("H1", "H2"))
@@ -427,7 +474,11 @@ test_that("szenario_to_geojson returns JSON string when as_json = TRUE", {
     Bundesland_ID = "00"
   )
 
-  poly <- sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), ncol = 2, byrow = TRUE)))
+  poly <- sf::st_polygon(list(matrix(
+    c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
   gemeinde_sf <- sf::st_sf(
     Gemeindeschluessel = "A",
     Gemeindename = "Test",
@@ -459,8 +510,16 @@ test_that("szenario_to_geojson respects coverage filter", {
     Bundesland_ID = c("01", "01")
   )
 
-  poly1 <- sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0), ncol = 2, byrow = TRUE)))
-  poly2 <- sf::st_polygon(list(matrix(c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0), ncol = 2, byrow = TRUE)))
+  poly1 <- sf::st_polygon(list(matrix(
+    c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
+  poly2 <- sf::st_polygon(list(matrix(
+    c(1, 0, 2, 0, 2, 1, 1, 1, 1, 0),
+    ncol = 2,
+    byrow = TRUE
+  )))
   gemeinde_sf <- sf::st_sf(
     Gemeindeschluessel = c("A", "B"),
     Gemeindename = c("Covered", "Partial"),
