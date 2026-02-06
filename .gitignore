@@ -44,3 +44,6 @@ unnamed-chunk-*.pdf
 *.aux
 *fdb_latexmk
 .env
+
+
+intermediate_scripts/*

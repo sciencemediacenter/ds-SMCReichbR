@@ -22,12 +22,14 @@ Imports:
     connections,
     glue,
     duckdb,
+    jsonlite,
     tools
 Suggests:
     rstudioapi,
     testthat (>= 3.0.0),
     withr,
     sf,
+    geojsonsf,
     arrow
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
