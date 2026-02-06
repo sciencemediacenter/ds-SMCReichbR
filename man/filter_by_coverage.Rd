@@ -8,7 +8,7 @@ filter_by_coverage(szenario_tibble, grenzwert_abdeckung = 99)
 }
 \arguments{
 \item{szenario_tibble}{A tibble as returned by \code{\link[=Szenario_Berechnung]{Szenario_Berechnung()}},
-must contain a \code{Prozent_Abgedeckt} column.}
+must contain a \code{Prozent_Abgedeckt_pro_Gemeinde} column.}
 
 \item{grenzwert_abdeckung}{Numeric threshold in percent (default 99).}
 }

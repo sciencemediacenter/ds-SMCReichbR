@@ -77,7 +77,7 @@ test_that("format_ewz is vectorized", {
 test_that("filter_by_coverage filters at default threshold", {
   data <- tibble::tibble(
     Gemeindeschluessel = c("A", "B", "C"),
-    Prozent_Abgedeckt = c(100, 99, 98)
+    Prozent_Abgedeckt_pro_Gemeinde = c(100, 99, 98)
   )
 
   result <- filter_by_coverage(data)
@@ -89,7 +89,7 @@ test_that("filter_by_coverage filters at default threshold", {
 test_that("filter_by_coverage uses custom threshold", {
   data <- tibble::tibble(
     Gemeindeschluessel = c("A", "B"),
-    Prozent_Abgedeckt = c(95, 90)
+    Prozent_Abgedeckt_pro_Gemeinde = c(95, 90)
   )
 
   result <- filter_by_coverage(data, grenzwert_abdeckung = 95)
@@ -365,7 +365,7 @@ test_that("szenario_to_geojson produces valid GeoJSON structure", {
     Prozent_Betroffene = c(10, 40),
     Anzahl_Gitterzellen = c(50, 40),
     Anzahl_bewohnte_Gitterzellen = c(50, 40),
-    Prozent_Abgedeckt = c(100, 100),
+    Prozent_Abgedeckt_pro_Gemeinde = c(100, 100),
     Bundesland = c("Bayern", "Bayern"),
     Bundesland_ID = c("09", "09")
   )
@@ -422,7 +422,7 @@ test_that("szenario_to_geojson returns JSON string when as_json = TRUE", {
     Prozent_Betroffene = 10,
     Anzahl_Gitterzellen = 5,
     Anzahl_bewohnte_Gitterzellen = 5,
-    Prozent_Abgedeckt = 100,
+    Prozent_Abgedeckt_pro_Gemeinde = 100,
     Bundesland = "Test",
     Bundesland_ID = "00"
   )
@@ -454,7 +454,7 @@ test_that("szenario_to_geojson respects coverage filter", {
     Prozent_Betroffene = c(0, 0),
     Anzahl_Gitterzellen = c(100, 50),
     Anzahl_bewohnte_Gitterzellen = c(100, 100),
-    Prozent_Abgedeckt = c(100, 50),
+    Prozent_Abgedeckt_pro_Gemeinde = c(100, 50),
     Bundesland = c("X", "X"),
     Bundesland_ID = c("01", "01")
   )

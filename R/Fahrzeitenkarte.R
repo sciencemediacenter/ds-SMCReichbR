@@ -19,7 +19,7 @@ utils::globalVariables(c(
   "Krankenhaus_Standortnummer",
   "Gemeindeschluessel",
   "Anzahl_bewohnte_Gitterzellen",
-  "Prozent_Abgedeckt",
+  "Prozent_Abgedeckt_pro_Gemeinde",
   "Bundesland",
   "Bundesland_ID"
 ))
@@ -202,7 +202,7 @@ create_polygon_label <- function(data, Verwaltungsebene) {
 #'   \item{Prozent_Betroffene}{Percentage of population exceeding threshold}
 #'   \item{Anzahl_Gitterzellen}{Number of grid cells covered by the scenario}
 #'   \item{Anzahl_bewohnte_Gitterzellen}{Total inhabited grid cells in the unit}
-#'   \item{Prozent_Abgedeckt}{Percentage of inhabited grid cells covered by the scenario}
+#'   \item{Prozent_Abgedeckt_pro_Gemeinde}{Percentage of inhabited grid cells covered by the scenario}
 #' }
 #'
 #' @examples
@@ -336,11 +336,11 @@ Szenario_Berechnung <- function(
       Grenzwert_Minuten = Grenzwert_Minuten
     )
   
-  # Join with bewohnte_gitterzellen and calculate Prozent_Abgedeckt
+  # Join with bewohnte_gitterzellen and calculate Prozent_Abgedeckt_pro_Gemeinde
   result <- summary |>
     left_join(bewohnte_gitterzellen, by = id_col) |>
     mutate(
-      Prozent_Abgedeckt = Anzahl_Gitterzellen / Anzahl_bewohnte_Gitterzellen * 100
+      Prozent_Abgedeckt_pro_Gemeinde = Anzahl_Gitterzellen / Anzahl_bewohnte_Gitterzellen * 100
     )
   
   tibble::as_tibble(result)

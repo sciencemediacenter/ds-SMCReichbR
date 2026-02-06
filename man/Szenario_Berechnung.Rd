@@ -38,7 +38,7 @@ A tibble with columns:
 \item{Prozent_Betroffene}{Percentage of population exceeding threshold}
 \item{Anzahl_Gitterzellen}{Number of grid cells covered by the scenario}
 \item{Anzahl_bewohnte_Gitterzellen}{Total inhabited grid cells in the unit}
-\item{Prozent_Abgedeckt}{Percentage of inhabited grid cells covered by the scenario}
+\item{Prozent_Abgedeckt_pro_Gemeinde}{Percentage of inhabited grid cells covered by the scenario}
 }
 }
 \description{

@@ -94,15 +94,15 @@ format_ewz <- function(x) {
 #' Python API filter `Prozent_Abgedeckt_pro_Gemeinde >= 99`.
 #'
 #' @param szenario_tibble A tibble as returned by [Szenario_Berechnung()],
-#'   must contain a `Prozent_Abgedeckt` column.
+#'   must contain a `Prozent_Abgedeckt_pro_Gemeinde` column.
 #' @param grenzwert_abdeckung Numeric threshold in percent (default 99).
 #'
 #' @return Filtered tibble.
 #'
 #' @export
 filter_by_coverage <- function(szenario_tibble, grenzwert_abdeckung = 99) {
-  stopifnot("Prozent_Abgedeckt" %in% names(szenario_tibble))
-  dplyr::filter(szenario_tibble, Prozent_Abgedeckt >= grenzwert_abdeckung)
+  stopifnot("Prozent_Abgedeckt_pro_Gemeinde" %in% names(szenario_tibble))
+  dplyr::filter(szenario_tibble, Prozent_Abgedeckt_pro_Gemeinde >= grenzwert_abdeckung)
 }
 
 
