@@ -189,6 +189,17 @@ create_polygon_label <- function(data, Verwaltungsebene) {
 #'   travel time exceeding this threshold is counted as "affected" (default: 30).
 #' @param Verwaltungsebene Character string specifying aggregation level:
 #'   "Gemeinde", "Kreis", "Regierungsbezirk", or "Bundesland" (default: "Gemeinde").
+#' @param entfernungsdaten_table Character string specifying which distance table
+#'   to use: `"Entfernungsdaten"` (default) or `"Entfernungsdaten_subset"`. Only
+#'   these two values are accepted; any other value raises an error.
+#' @param gitterzellen_layout Character string specifying the layout of the
+#'   Gitterzellen tables in the database. Use
+#'   `"Gemeinde_and_Einwohner_mapping_combined"` (default) when the database
+#'   contains a single pre-joined `Gitterzellen_mit_Einwohnern_Gemeinde_Mapping`
+#'   table (e.g. a Komplettexport database). Use
+#'   `"Gemeinde_and_Einwohner_mapping_split"` when the database has the two
+#'   separate source tables `Gitterzellen_Gemeinde_Mapping` and
+#'   `Gitterzellen_Einwohner_Mapping` (e.g. a Klinikfilter-produced database).
 #'
 #' @return A tibble with columns:
 #' \describe{
@@ -222,10 +233,14 @@ Szenario_Berechnung <- function(
   krankenhaus_standortnummern_csv_path,
   con,
   Grenzwert_Minuten = 30,
-  Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland")
+  Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland"),
+  entfernungsdaten_table = c("Entfernungsdaten", "Entfernungsdaten_subset"),
+  gitterzellen_layout = c("Gemeinde_and_Einwohner_mapping_combined", "Gemeinde_and_Einwohner_mapping_split")
 ) {
   # Validate inputs
   Verwaltungsebene <- match.arg(Verwaltungsebene)
+  entfernungsdaten_table <- match.arg(entfernungsdaten_table)
+  gitterzellen_layout <- match.arg(gitterzellen_layout)
   require_file_exists(krankenhaus_standortnummern_csv_path)
 
   # Read scenario CSV
@@ -249,15 +264,28 @@ Szenario_Berechnung <- function(
     overwrite = TRUE
   )
 
+  # Quote the validated table name for safe injection into SQL
+  entfernungsdaten_quoted <- DBI::dbQuoteIdentifier(con, entfernungsdaten_table)
+
+  # Build the Gitterzellen SQL fragment based on layout
+  gitterzellen_sql <- if (gitterzellen_layout == "Gemeinde_and_Einwohner_mapping_combined") {
+    '"Gitterzellen_mit_Einwohnern_Gemeinde_Mapping"'
+  } else {
+    '(SELECT g."Gitterzellen_ID", g."Gemeindeschluessel", e."Einwohner"
+      FROM "Gitterzellen_Gemeinde_Mapping" g
+      LEFT JOIN "Gitterzellen_Einwohner_Mapping" e
+        ON g."Gitterzellen_ID" = e."Gitterzellen_ID")'
+  }
+
   # Query: find minimum travel time per grid cell for scenario hospitals
-  query <- '
+  query <- paste0('
     WITH joined_data AS (
         SELECT
             e."Krankenhaus_Standortnummer",
             e."Gitterzellen_ID",
             e."Fahrzeit_Sekunden"
         FROM temp_scenario ts
-        INNER JOIN "Entfernungsdaten" e 
+        INNER JOIN ', entfernungsdaten_quoted, ' e
             ON ts."Krankenhaus_Standortnummer" = e."Krankenhaus_Standortnummer"
     ),
     min_times AS (
@@ -284,9 +312,9 @@ Szenario_Berechnung <- function(
         ge."Einwohner",
         ge."Gemeindeschluessel"
     FROM filtered_data fd
-    LEFT JOIN "Gitterzellen_mit_Einwohnern_Gemeinde_Mapping" ge
+    LEFT JOIN ', gitterzellen_sql, ' ge
         ON fd."Gitterzellen_ID" = ge."Gitterzellen_ID"
-  '
+  ')
 
   grid_data <- as_tibble(dbGetQuery(con, query))
 
@@ -334,16 +362,14 @@ Szenario_Berechnung <- function(
   # (This replaces mv_bewohnte_gitterzellen_pro_gemeinde)
   bewohnte_gitterzellen <- as_tibble(dbGetQuery(
     con,
-    glue(
-      '
-    SELECT 
-      vm."{id_col}",
-      COUNT(DISTINCT ge."Gitterzellen_ID") AS "Anzahl_bewohnte_Gitterzellen"
-    FROM "Gitterzellen_mit_Einwohnern_Gemeinde_Mapping" ge
-    LEFT JOIN "Verwaltungsgebiete_Mapping" vm
-      ON ge."Gemeindeschluessel" = vm."Gemeindeschluessel"
-    GROUP BY vm."{id_col}"
-  '
+    paste0(
+      'SELECT
+        vm."', id_col, '",
+        COUNT(DISTINCT ge."Gitterzellen_ID") AS "Anzahl_bewohnte_Gitterzellen"
+      FROM ', gitterzellen_sql, ' ge
+      LEFT JOIN "Verwaltungsgebiete_Mapping" vm
+        ON ge."Gemeindeschluessel" = vm."Gemeindeschluessel"
+      GROUP BY vm."', id_col, '"'
     )
   ))
 

@@ -8,7 +8,10 @@ Szenario_Berechnung(
   krankenhaus_standortnummern_csv_path,
   con,
   Grenzwert_Minuten = 30,
-  Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland")
+  Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland"),
+  entfernungsdaten_table = c("Entfernungsdaten", "Entfernungsdaten_subset"),
+  gitterzellen_layout = c("Gemeinde_and_Einwohner_mapping_combined",
+    "Gemeinde_and_Einwohner_mapping_split")
 )
 }
 \arguments{
@@ -24,6 +27,19 @@ travel time exceeding this threshold is counted as "affected" (default: 30).}
 
 \item{Verwaltungsebene}{Character string specifying aggregation level:
 "Gemeinde", "Kreis", "Regierungsbezirk", or "Bundesland" (default: "Gemeinde").}
+
+\item{entfernungsdaten_table}{Character string specifying which distance table
+to use: \code{"Entfernungsdaten"} (default) or \code{"Entfernungsdaten_subset"}. Only
+these two values are accepted; any other value raises an error.}
+
+\item{gitterzellen_layout}{Character string specifying the layout of the
+Gitterzellen tables in the database. Use
+\code{"Gemeinde_and_Einwohner_mapping_combined"} (default) when the database
+contains a single pre-joined \code{Gitterzellen_mit_Einwohnern_Gemeinde_Mapping}
+table (e.g. a Komplettexport database). Use
+\code{"Gemeinde_and_Einwohner_mapping_split"} when the database has the two
+separate source tables \code{Gitterzellen_Gemeinde_Mapping} and
+\code{Gitterzellen_Einwohner_Mapping} (e.g. a Klinikfilter-produced database).}
 }
 \value{
 A tibble with columns:
