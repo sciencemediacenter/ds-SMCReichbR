@@ -46,8 +46,8 @@ Fahrzeit_Differenz_Zusammenfassung <- function(
   scenario_data,
   .by,
   by = c(
-    "Gitterzellen_ID",
     "Einwohner",
+    "Gitterzellen_ID",
     "Gemeindename",
     "Gemeindeschluessel",
     "Bundesland",
@@ -56,8 +56,7 @@ Fahrzeit_Differenz_Zusammenfassung <- function(
     "Bundesland_ID",
     "Regierungsbezirk_ID",
     "Kreis_ID",
-    "Gemeinde_ID",
-    "Datum_Gitter"
+    "Gemeinde_ID"
   )
 ) {
   result <- reference_data |>
