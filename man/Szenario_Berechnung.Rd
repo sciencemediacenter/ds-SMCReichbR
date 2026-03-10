@@ -11,7 +11,8 @@ Szenario_Berechnung(
   Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland"),
   entfernungsdaten_table = c("Entfernungsdaten", "Entfernungsdaten_subset"),
   gitterzellen_layout = c("Gemeinde_and_Einwohner_mapping_combined",
-    "Gemeinde_and_Einwohner_mapping_split")
+    "Gemeinde_and_Einwohner_mapping_split"),
+  return_gitterzellen_daten = FALSE
 )
 }
 \arguments{
@@ -40,9 +41,17 @@ table (e.g. a Komplettexport database). Use
 \code{"Gemeinde_and_Einwohner_mapping_split"} when the database has the two
 separate source tables \code{Gitterzellen_Gemeinde_Mapping} and
 \code{Gitterzellen_Einwohner_Mapping} (e.g. a Klinikfilter-produced database).}
+
+\item{return_gitterzellen_daten}{Logical; if \code{TRUE} the function returns the
+unaggregated grid-cell-level data enriched with all columns from
+\code{Verwaltungsgebiete_Mapping}, instead of the aggregated summary. This is
+useful as input to \code{\link[=Fahrzeit_Differenz_Zusammenfassung]{Fahrzeit_Differenz_Zusammenfassung()}}. When \code{TRUE},
+the \code{Verwaltungsebene} and \code{Grenzwert_Minuten} parameters are ignored
+(default: \code{FALSE}).}
 }
 \value{
-A tibble with columns:
+When \code{return_gitterzellen_daten = FALSE} (the default), a tibble
+aggregated by \code{Verwaltungsebene} with columns:
 \describe{
 \item{\if{html}{\out{<ID column>}}}{Administrative unit ID (e.g., Gemeindeschluessel)}
 \item{\if{html}{\out{<Name column>}}}{Administrative unit name (e.g., Gemeindename)}
@@ -56,6 +65,11 @@ A tibble with columns:
 \item{Anzahl_bewohnte_Gitterzellen}{Total inhabited grid cells in the unit}
 \item{Prozent_Abgedeckt_pro_Gemeinde}{Percentage of inhabited grid cells covered by the scenario}
 }
+
+When \code{return_gitterzellen_daten = TRUE}, a tibble with one row per grid cell
+containing columns \code{Krankenhaus_Standortnummer}, \code{Gitterzellen_ID},
+\code{Fahrzeit_Sekunden}, \code{Einwohner}, \code{Gemeindeschluessel}, and all columns
+from \code{Verwaltungsgebiete_Mapping}.
 }
 \description{
 Calculates travel time statistics for a given set of hospitals (scenario),

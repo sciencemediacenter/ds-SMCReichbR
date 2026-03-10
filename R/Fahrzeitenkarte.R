@@ -245,8 +245,15 @@ create_polygon_label <- function(data, Verwaltungsebene) {
 #'   `"Gemeinde_and_Einwohner_mapping_split"` when the database has the two
 #'   separate source tables `Gitterzellen_Gemeinde_Mapping` and
 #'   `Gitterzellen_Einwohner_Mapping` (e.g. a Klinikfilter-produced database).
+#' @param return_gitterzellen_daten Logical; if `TRUE` the function returns the
+#'   unaggregated grid-cell-level data enriched with all columns from
+#'   `Verwaltungsgebiete_Mapping`, instead of the aggregated summary. This is
+#'   useful as input to [Fahrzeit_Differenz_Zusammenfassung()]. When `TRUE`,
+#'   the `Verwaltungsebene` and `Grenzwert_Minuten` parameters are ignored
+#'   (default: `FALSE`).
 #'
-#' @return A tibble with columns:
+#' @return When `return_gitterzellen_daten = FALSE` (the default), a tibble
+#'   aggregated by `Verwaltungsebene` with columns:
 #' \describe{
 #'   \item{<ID column>}{Administrative unit ID (e.g., Gemeindeschluessel)}
 #'   \item{<Name column>}{Administrative unit name (e.g., Gemeindename)}
@@ -260,6 +267,11 @@ create_polygon_label <- function(data, Verwaltungsebene) {
 #'   \item{Anzahl_bewohnte_Gitterzellen}{Total inhabited grid cells in the unit}
 #'   \item{Prozent_Abgedeckt_pro_Gemeinde}{Percentage of inhabited grid cells covered by the scenario}
 #' }
+#'
+#' When `return_gitterzellen_daten = TRUE`, a tibble with one row per grid cell
+#'   containing columns `Krankenhaus_Standortnummer`, `Gitterzellen_ID`,
+#'   `Fahrzeit_Sekunden`, `Einwohner`, `Gemeindeschluessel`, and all columns
+#'   from `Verwaltungsgebiete_Mapping`.
 #'
 #' @examples
 #' \dontrun{
@@ -283,10 +295,10 @@ Szenario_Berechnung <- function(
   gitterzellen_layout = c(
     "Gemeinde_and_Einwohner_mapping_combined",
     "Gemeinde_and_Einwohner_mapping_split"
-  )
+  ),
+  return_gitterzellen_daten = FALSE
 ) {
   # Validate inputs
-  Verwaltungsebene <- match.arg(Verwaltungsebene)
   entfernungsdaten_table <- match.arg(entfernungsdaten_table)
   gitterzellen_layout <- match.arg(gitterzellen_layout)
   require_file_exists(krankenhaus_standortnummern_csv_path)
@@ -374,6 +386,24 @@ Szenario_Berechnung <- function(
 
   grid_data <- as_tibble(dbGetQuery(con, query))
 
+  # Get Verwaltungsgebiete_Mapping for joining
+  verwaltung <- as_tibble(dbGetQuery(
+    con,
+    'SELECT * FROM "Verwaltungsgebiete_Mapping"'
+  ))
+
+  # Early return: grid-cell-level data with all administrative columns
+
+  if (return_gitterzellen_daten) {
+    grid_data <- grid_data |>
+      left_join(verwaltung, by = "Gemeindeschluessel")
+    return(tibble::as_tibble(grid_data))
+  }
+
+  # --- Aggregation path ---
+
+  Verwaltungsebene <- match.arg(Verwaltungsebene)
+
   # Determine grouping columns based on Verwaltungsebene
   grouping_info <- list(
     Gemeinde = list(
@@ -396,12 +426,6 @@ Szenario_Berechnung <- function(
 
   id_col <- grouping_info[[Verwaltungsebene]]$id_col
   name_col <- grouping_info[[Verwaltungsebene]]$name_col
-
-  # Get Verwaltungsgebiete_Mapping for joining
-  verwaltung <- as_tibble(dbGetQuery(
-    con,
-    'SELECT * FROM "Verwaltungsgebiete_Mapping"'
-  ))
 
   # Join grid data with administrative mapping
   grid_data <- grid_data |>
