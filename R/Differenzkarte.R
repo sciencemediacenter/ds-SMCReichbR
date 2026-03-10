@@ -159,10 +159,8 @@ create_polygon_label_differenz <- function(data, Verwaltungsebene) {
       )
   }
 
-  # Convert to HTML tags row by row
   result <- result |>
-    rowwise() |>
-    mutate(label = HTML(label))
+    mutate(label = as.character(label))
 
   tibble::as_tibble(result)
 }

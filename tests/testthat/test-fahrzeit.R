@@ -278,11 +278,10 @@ test_that("create_polygon_label label contains HTML content", {
 
   result <- create_polygon_label(data, Gemeindename)
 
-  # Label should be character vector with HTML content
   expect_type(result$label, "character")
   # Should contain HTML tags
-  expect_true(grepl("<strong>", result$label[[1]], fixed = TRUE))
-  expect_true(grepl("<br/>", result$label[[1]], fixed = TRUE))
+  expect_true(grepl("<strong>", as.character(result$label[[1]]), fixed = TRUE))
+  expect_true(grepl("<br/>", as.character(result$label[[1]]), fixed = TRUE))
 })
 
 # --- Error handling ---
@@ -391,4 +390,156 @@ test_that("create_polygon_label handles empty tibble", {
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 0)
   expect_true("label" %in% names(result))
+})
+
+# ============================================================================
+# Tests for Fahrzeit_Zusammenfassung() — multi-threshold support
+# ============================================================================
+
+test_that("Fahrzeit_Zusammenfassung NULL threshold returns baseline only", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2"),
+    Fahrzeit_Sekunden = c(1200, 2400),
+    Einwohner = c(100, 200)
+  )
+
+  result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = NULL)
+
+  expect_false("Anzahl_Betroffene" %in% names(result))
+  expect_false("Prozent_Betroffene" %in% names(result))
+  expect_true("Einwohner_Gesamt" %in% names(result))
+  expect_true("Mittlere_Gewichtete_Fahrzeit" %in% names(result))
+})
+
+test_that("Fahrzeit_Zusammenfassung empty vector treated as NULL", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2"),
+    Fahrzeit_Sekunden = c(1200, 2400),
+    Einwohner = c(100, 200)
+  )
+
+  result_null <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = NULL
+  )
+  result_empty <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = numeric(0)
+  )
+
+  expect_equal(names(result_null), names(result_empty))
+  expect_equal(result_null$Einwohner_Gesamt, result_empty$Einwohner_Gesamt)
+})
+
+test_that("Fahrzeit_Zusammenfassung scalar threshold produces unsuffixed columns", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2", "G3"),
+    Fahrzeit_Sekunden = c(1200, 1800, 2400), # 20, 30, 40 min
+    Einwohner = c(100, 200, 150)
+  )
+
+  result <- Fahrzeit_Zusammenfassung(data, Gemeinde, Grenzwert_Minuten = 25)
+
+  expect_true("Anzahl_Betroffene" %in% names(result))
+  expect_true("Prozent_Betroffene" %in% names(result))
+  expect_false(any(grepl("_min$", names(result))))
+})
+
+test_that("Fahrzeit_Zusammenfassung vector threshold produces suffixed wide columns", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2", "G3"),
+    Fahrzeit_Sekunden = c(1200, 1800, 2400), # 20, 30, 40 min
+    Einwohner = c(100, 200, 150)
+  )
+
+  result <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = c(30, 60)
+  )
+
+  expect_true("Anzahl_Betroffene_30min" %in% names(result))
+  expect_true("Prozent_Betroffene_30min" %in% names(result))
+  expect_true("Anzahl_Betroffene_60min" %in% names(result))
+  expect_true("Prozent_Betroffene_60min" %in% names(result))
+  expect_false("Anzahl_Betroffene" %in% names(result))
+  expect_false("Prozent_Betroffene" %in% names(result))
+})
+
+test_that("Fahrzeit_Zusammenfassung vector threshold computes correct values", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2", "G3"),
+    Fahrzeit_Sekunden = c(1200, 1800, 2400), # 20, 30, 40 min
+    Einwohner = c(100, 200, 150)
+  )
+
+  result <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = c(30, 60)
+  )
+
+  # threshold 30: only 40 min row exceeds → 150 affected
+  expect_equal(result$Anzahl_Betroffene_30min, 150)
+  expect_equal(result$Prozent_Betroffene_30min, 150 / 450 * 100)
+
+  # threshold 60: no row exceeds → 0 affected
+  expect_equal(result$Anzahl_Betroffene_60min, 0)
+  expect_equal(result$Prozent_Betroffene_60min, 0)
+})
+
+test_that("Fahrzeit_Zusammenfassung vector with NA and duplicates same as clean vector", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2", "G3"),
+    Fahrzeit_Sekunden = c(1200, 1800, 2400),
+    Einwohner = c(100, 200, 150)
+  )
+
+  result_clean <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = c(30, 60)
+  )
+  result_dirty <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = c(30, NA, 60, 30)
+  )
+
+  expect_equal(names(result_clean), names(result_dirty))
+  expect_equal(
+    result_clean$Anzahl_Betroffene_30min,
+    result_dirty$Anzahl_Betroffene_30min
+  )
+  expect_equal(
+    result_clean$Anzahl_Betroffene_60min,
+    result_dirty$Anzahl_Betroffene_60min
+  )
+})
+
+test_that("Fahrzeit_Zusammenfassung vector threshold preserves baseline columns", {
+  data <- tibble::tibble(
+    Gemeinde = "A",
+    Gitterzellen_ID = c("G1", "G2"),
+    Fahrzeit_Sekunden = c(1200, 2400),
+    Einwohner = c(100, 200)
+  )
+
+  result <- Fahrzeit_Zusammenfassung(
+    data,
+    Gemeinde,
+    Grenzwert_Minuten = c(30, 60)
+  )
+
+  expect_true("Einwohner_Gesamt" %in% names(result))
+  expect_true("Mittlere_Gewichtete_Fahrzeit" %in% names(result))
+  expect_true("Anzahl_Gitterzellen" %in% names(result))
 })

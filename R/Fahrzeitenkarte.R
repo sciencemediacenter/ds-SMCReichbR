@@ -3,11 +3,13 @@ utils::globalVariables(c(
   "Einwohner",
   "Fahrzeit_Differenz_Minuten",
   "Anzahl_Betroffene",
+  "Prozent_Betroffene",
   "Einwohner_Gesamt",
   ".by",
   "Fahrzeit_Sekunden",
   "Fahrzeit_Minuten",
   "Ueber_Grenzwert",
+  "Schwellenwert",
   "Mittlere_Gewichtete_Fahrzeit_formatted",
   "Einwohner_Gesamt_formatted",
   "Anzahl_Betroffene_formatted",
@@ -25,19 +27,49 @@ utils::globalVariables(c(
 ))
 
 
+# Internal helper: summarise affected population for one threshold value.
+# Returns the grouping columns plus Anzahl_Betroffene, Prozent_Betroffene,
+# and a Schwellenwert column identifying the threshold used.
+summarise_threshold <- function(data, threshold, .by) {
+  data |>
+    mutate(Ueber_Grenzwert = Fahrzeit_Minuten > threshold) |>
+    summarise(
+      Anzahl_Betroffene = sum(Einwohner[Ueber_Grenzwert], na.rm = TRUE),
+      Prozent_Betroffene = Anzahl_Betroffene /
+        sum(Einwohner, na.rm = TRUE) *
+        100,
+      .by = {{ .by }}
+    ) |>
+    mutate(Schwellenwert = threshold)
+}
+
 #' Summarize Weighted Travel Times
 #'
-#' Calculates the weighted mean travel time and, if a threshold is given, the number and percentage of people exceeding it.
+#' Calculates the weighted mean travel time and, if one or more thresholds are
+#' given, the number and percentage of people exceeding each threshold.
 #'
-#' The input `data` is expected to be a tibble (as returned by dplyr/tidyverse workflows).
+#' The input `data` is expected to be a tibble (as returned by dplyr/tidyverse
+#' workflows).
 #'
-#' @param data A tibble with travel times and population columns. Must include columns:
-#'   Fahrzeit_Sekunden, Einwohner, Gitterzellen_ID.
-#' @param .by Grouping columns (tidyselect, e.g. c(Gemeindename, Gemeindeschluessel)).
-#' @param Grenzwert_Minuten Optional numeric threshold (in minutes) for "affected" population.
+#' @param data A tibble with travel times and population columns. Must include
+#'   columns: Fahrzeit_Sekunden, Einwohner, Gitterzellen_ID.
+#' @param .by Grouping columns (tidyselect, e.g. `c(Gemeindename, Gemeindeschluessel)`).
+#' @param Grenzwert_Minuten Optional numeric threshold(s) in minutes for
+#'   "affected" population. May be `NULL` (no threshold columns), a single
+#'   scalar (backward-compatible output without column suffixes), or a numeric
+#'   vector (wide-format output with `_<n>min` suffixes). `NA` values and
+#'   duplicates are silently ignored.
 #'
-#' @return A tibble summarizing, for each group, the total population, weighted mean travel time,
-#'   number of grid cells, and, if threshold is set, the number and percent affected.
+#' @return A tibble summarizing, for each group, the total population, weighted
+#'   mean travel time, number of grid cells, and — when thresholds are supplied
+#'   — the number and percentage of affected population.
+#'
+#'   For a single threshold the affected-population columns are named
+#'   `Anzahl_Betroffene` and `Prozent_Betroffene` (no suffix).
+#'
+#'   For multiple thresholds the columns are named
+#'   `Anzahl_Betroffene_<n>min` and `Prozent_Betroffene_<n>min` for each
+#'   threshold value `<n>`.
 #'
 #' @examples
 #' # summary <- Fahrzeit_Zusammenfassung(
@@ -51,41 +83,56 @@ Fahrzeit_Zusammenfassung <- function(
   .by,
   Grenzwert_Minuten = NULL
 ) {
-  result <- data |>
-    mutate(
-      Fahrzeit_Minuten = Fahrzeit_Sekunden / 60
+  prepared <- data |>
+    mutate(Fahrzeit_Minuten = Fahrzeit_Sekunden / 60)
+
+  baseline <- prepared |>
+    summarise(
+      Einwohner_Gesamt = sum(Einwohner, na.rm = TRUE),
+      Mittlere_Gewichtete_Fahrzeit = weighted.mean(
+        Fahrzeit_Minuten,
+        w = Einwohner,
+        na.rm = TRUE
+      ),
+      Anzahl_Gitterzellen = dplyr::n_distinct(Gitterzellen_ID),
+      .by = {{ .by }}
     )
 
-  if (!is.null(Grenzwert_Minuten)) {
-    summary <- result |>
-      mutate(Ueber_Grenzwert = Fahrzeit_Minuten > Grenzwert_Minuten) |>
-      summarise(
-        Einwohner_Gesamt = sum(Einwohner, na.rm = TRUE),
-        Mittlere_Gewichtete_Fahrzeit = weighted.mean(
-          Fahrzeit_Minuten,
-          w = Einwohner,
-          na.rm = TRUE
-        ),
-        Anzahl_Betroffene = sum(Einwohner[Ueber_Grenzwert], na.rm = TRUE),
-        Prozent_Betroffene = Anzahl_Betroffene / Einwohner_Gesamt * 100,
-        Anzahl_Gitterzellen = dplyr::n_distinct(Gitterzellen_ID),
-        .by = {{ .by }}
-      )
-  } else {
-    summary <- result |>
-      summarise(
-        Einwohner_Gesamt = sum(Einwohner, na.rm = TRUE),
-        Mittlere_Gewichtete_Fahrzeit = weighted.mean(
-          Fahrzeit_Minuten,
-          w = Einwohner,
-          na.rm = TRUE
-        ),
-        Anzahl_Gitterzellen = dplyr::n_distinct(Gitterzellen_ID),
-        .by = {{ .by }}
-      )
+  thresholds <- unique(na.omit(Grenzwert_Minuten))
+
+  if (length(thresholds) == 0) {
+    return(tibble::as_tibble(baseline))
   }
 
-  tibble::as_tibble(summary)
+  if (length(thresholds) == 1) {
+    threshold_summary <- summarise_threshold(prepared, thresholds, {{ .by }}) |>
+      select(-Schwellenwert)
+    # join_by() does not accept tidyselect expressions (e.g. all_of()),
+    # so we resolve the grouping columns from the materialised tibbles
+    # and splice them as symbols: join_by(!!!syms(c("col_a", "col_b")))
+    # expands to join_by(col_a, col_b).
+    by_cols <- intersect(names(baseline), names(threshold_summary))
+    result <- baseline |>
+      left_join(threshold_summary, by = dplyr::join_by(!!!rlang::syms(by_cols)))
+    return(tibble::as_tibble(result))
+  }
+
+  threshold_summary <- purrr::map(thresholds, \(thresh) {
+    summarise_threshold(prepared, thresh, {{ .by }})
+  }) |>
+    purrr::list_rbind() |>
+    tidyr::pivot_wider(
+      names_from = Schwellenwert,
+      names_glue = "{.value}_{Schwellenwert}min",
+      values_from = c(Anzahl_Betroffene, Prozent_Betroffene)
+    )
+
+  # See comment above for rationale on intersect + !!!syms pattern.
+  by_cols <- intersect(names(baseline), names(threshold_summary))
+  result <- baseline |>
+    left_join(threshold_summary, by = dplyr::join_by(!!!rlang::syms(by_cols)))
+
+  tibble::as_tibble(result)
 }
 
 #' Create HTML Labels for Travel Time Polygons
@@ -158,10 +205,8 @@ create_polygon_label <- function(data, Verwaltungsebene) {
       )
   }
 
-  # Convert to HTML tags row by row
   result <- result |>
-    rowwise() |>
-    mutate(label = HTML(label))
+    mutate(label = as.character(label))
 
   tibble::as_tibble(result)
 }
@@ -235,7 +280,10 @@ Szenario_Berechnung <- function(
   Grenzwert_Minuten = 30,
   Verwaltungsebene = c("Gemeinde", "Kreis", "Regierungsbezirk", "Bundesland"),
   entfernungsdaten_table = c("Entfernungsdaten", "Entfernungsdaten_subset"),
-  gitterzellen_layout = c("Gemeinde_and_Einwohner_mapping_combined", "Gemeinde_and_Einwohner_mapping_split")
+  gitterzellen_layout = c(
+    "Gemeinde_and_Einwohner_mapping_combined",
+    "Gemeinde_and_Einwohner_mapping_split"
+  )
 ) {
   # Validate inputs
   Verwaltungsebene <- match.arg(Verwaltungsebene)
@@ -268,7 +316,9 @@ Szenario_Berechnung <- function(
   entfernungsdaten_quoted <- DBI::dbQuoteIdentifier(con, entfernungsdaten_table)
 
   # Build the Gitterzellen SQL fragment based on layout
-  gitterzellen_sql <- if (gitterzellen_layout == "Gemeinde_and_Einwohner_mapping_combined") {
+  gitterzellen_sql <- if (
+    gitterzellen_layout == "Gemeinde_and_Einwohner_mapping_combined"
+  ) {
     '"Gitterzellen_mit_Einwohnern_Gemeinde_Mapping"'
   } else {
     '(SELECT g."Gitterzellen_ID", g."Gemeindeschluessel", e."Einwohner"
@@ -278,14 +328,17 @@ Szenario_Berechnung <- function(
   }
 
   # Query: find minimum travel time per grid cell for scenario hospitals
-  query <- paste0('
+  query <- paste0(
+    '
     WITH joined_data AS (
         SELECT
             e."Krankenhaus_Standortnummer",
             e."Gitterzellen_ID",
             e."Fahrzeit_Sekunden"
         FROM temp_scenario ts
-        INNER JOIN ', entfernungsdaten_quoted, ' e
+        INNER JOIN ',
+    entfernungsdaten_quoted,
+    ' e
             ON ts."Krankenhaus_Standortnummer" = e."Krankenhaus_Standortnummer"
     ),
     min_times AS (
@@ -312,9 +365,12 @@ Szenario_Berechnung <- function(
         ge."Einwohner",
         ge."Gemeindeschluessel"
     FROM filtered_data fd
-    LEFT JOIN ', gitterzellen_sql, ' ge
+    LEFT JOIN ',
+    gitterzellen_sql,
+    ' ge
         ON fd."Gitterzellen_ID" = ge."Gitterzellen_ID"
-  ')
+  '
+  )
 
   grid_data <- as_tibble(dbGetQuery(con, query))
 
@@ -364,12 +420,18 @@ Szenario_Berechnung <- function(
     con,
     paste0(
       'SELECT
-        vm."', id_col, '",
+        vm."',
+      id_col,
+      '",
         COUNT(DISTINCT ge."Gitterzellen_ID") AS "Anzahl_bewohnte_Gitterzellen"
-      FROM ', gitterzellen_sql, ' ge
+      FROM ',
+      gitterzellen_sql,
+      ' ge
       LEFT JOIN "Verwaltungsgebiete_Mapping" vm
         ON ge."Gemeindeschluessel" = vm."Gemeindeschluessel"
-      GROUP BY vm."', id_col, '"'
+      GROUP BY vm."',
+      id_col,
+      '"'
     )
   ))
 

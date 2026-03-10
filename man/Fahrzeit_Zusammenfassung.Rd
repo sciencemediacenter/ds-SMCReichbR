@@ -7,22 +7,36 @@
 Fahrzeit_Zusammenfassung(data, .by, Grenzwert_Minuten = NULL)
 }
 \arguments{
-\item{data}{A tibble with travel times and population columns. Must include columns:
-Fahrzeit_Sekunden, Einwohner, Gitterzellen_ID.}
+\item{data}{A tibble with travel times and population columns. Must include
+columns: Fahrzeit_Sekunden, Einwohner, Gitterzellen_ID.}
 
-\item{.by}{Grouping columns (tidyselect, e.g. c(Gemeindename, Gemeindeschluessel)).}
+\item{.by}{Grouping columns (tidyselect, e.g. \code{c(Gemeindename, Gemeindeschluessel)}).}
 
-\item{Grenzwert_Minuten}{Optional numeric threshold (in minutes) for "affected" population.}
+\item{Grenzwert_Minuten}{Optional numeric threshold(s) in minutes for
+"affected" population. May be \code{NULL} (no threshold columns), a single
+scalar (backward-compatible output without column suffixes), or a numeric
+vector (wide-format output with \verb{_<n>min} suffixes). \code{NA} values and
+duplicates are silently ignored.}
 }
 \value{
-A tibble summarizing, for each group, the total population, weighted mean travel time,
-number of grid cells, and, if threshold is set, the number and percent affected.
+A tibble summarizing, for each group, the total population, weighted
+mean travel time, number of grid cells, and — when thresholds are supplied
+— the number and percentage of affected population.
+
+For a single threshold the affected-population columns are named
+\code{Anzahl_Betroffene} and \code{Prozent_Betroffene} (no suffix).
+
+For multiple thresholds the columns are named
+\verb{Anzahl_Betroffene_<n>min} and \verb{Prozent_Betroffene_<n>min} for each
+threshold value \verb{<n>}.
 }
 \description{
-Calculates the weighted mean travel time and, if a threshold is given, the number and percentage of people exceeding it.
+Calculates the weighted mean travel time and, if one or more thresholds are
+given, the number and percentage of people exceeding each threshold.
 }
 \details{
-The input \code{data} is expected to be a tibble (as returned by dplyr/tidyverse workflows).
+The input \code{data} is expected to be a tibble (as returned by dplyr/tidyverse
+workflows).
 }
 \examples{
 # summary <- Fahrzeit_Zusammenfassung(
