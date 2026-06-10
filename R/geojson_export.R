@@ -10,7 +10,14 @@ utils::globalVariables(c(
   "AGS",
   "GEN",
   "EWZ",
-  "geometry"
+  "geometry",
+  "Bezeichnung",
+  "Träger",
+  "Adresse",
+  "Bundesland",
+  "Kreis",
+  "Krankenhaus_Standortnummer",
+  "Krankenhaus_Standort_ID"
 ))
 
 
@@ -515,6 +522,101 @@ szenario_to_geojson <- function(
   fc <- assemble_feature_collection(
     features = features,
     scenario1_summary = scenario1_meta
+  )
+
+  if (as_json) {
+    jsonlite::toJSON(
+      fc,
+      auto_unbox = TRUE,
+      null = "null",
+      na = "null",
+      pretty = TRUE,
+      force = TRUE
+    )
+  } else {
+    fc
+  }
+}
+
+
+# ---------------------------------------------------------------------------
+# Clinics GeoJSON export
+# ---------------------------------------------------------------------------
+
+#' Convert Krankenhaus_Standortliste to GeoJSON
+#'
+#' Transforms `Krankenhaus_Standortliste` (sf tibble) combined with
+#' `Verwaltungsgebiete_Mapping` into a GeoJSON FeatureCollection matching
+#' the structure produced by the Python `/clinics` endpoint.
+#'
+#' @param krankenhaus_sf An `sf` tibble from `Krankenhaus_Standortliste` with
+#'   at least columns `Krankenhaus_Standortnummer`, `Bezeichnung`, `Träger`,
+#'   `Adresse`, `Gemeindeschluessel`, and a `geometry` column (Point, WGS84).
+#' @param verwaltungsgebiete A tibble from `Verwaltungsgebiete_Mapping` with
+#'   at least columns `Gemeindeschluessel`, `Gemeindename`, `Kreis`,
+#'   `Bundesland`.
+#' @param as_json Logical; if `TRUE` (default), return a JSON string. If
+#'   `FALSE`, return the R list structure.
+#'
+#' @return Either a JSON string or a named list representing a
+#'   `FeatureCollectionClinics` (type, crs, features).
+#'
+#' @examples
+#' # geojson <- kliniken_to_geojson(
+#' #   krankenhaus_sf = Krankenhaus_Standortliste,
+#' #   verwaltungsgebiete = Verwaltungsgebiete_Mapping
+#' # )
+#'
+#' @export
+kliniken_to_geojson <- function(
+  krankenhaus_sf,
+  verwaltungsgebiete,
+  as_json = TRUE
+) {
+  if (!requireNamespace("sf", quietly = TRUE)) {
+    stop("Package 'sf' is required but not installed.")
+  }
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    stop("Package 'jsonlite' is required but not installed.")
+  }
+  if (!requireNamespace("geojsonsf", quietly = TRUE)) {
+    stop("Package 'geojsonsf' is required but not installed.")
+  }
+
+  joined <- dplyr::left_join(
+    krankenhaus_sf,
+    dplyr::select(
+      verwaltungsgebiete,
+      "Gemeindeschluessel", "Gemeindename", "Kreis", "Bundesland"
+    ),
+    by = "Gemeindeschluessel"
+  ) |>
+    dplyr::arrange(Krankenhaus_Standort_ID) |>
+    dplyr::distinct(Krankenhaus_Standort_ID, .keep_all = TRUE)
+
+  kliniken_sf <- dplyr::mutate(
+    joined,
+    id = Krankenhaus_Standortnummer,
+    name = dplyr::if_else(
+      is.na(Träger),
+      Bezeichnung,
+      paste0(Bezeichnung, " (", Träger, ")")
+    ),
+    adress = Adresse,
+    bundesland = Bundesland,
+    kreis = Kreis,
+    gemeinde = Gemeindename
+  )
+
+  features <- sf_to_feature_list(
+    kliniken_sf,
+    property_cols = c("id", "name", "adress", "bundesland", "kreis", "gemeinde")
+  )
+
+  fc <- list(
+    type = "FeatureCollection",
+    crs = build_crs_block(),
+    features = features
   )
 
   if (as_json) {
