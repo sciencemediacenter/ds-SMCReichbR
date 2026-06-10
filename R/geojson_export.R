@@ -49,6 +49,19 @@ serialize_geojson <- function(x) {
 }
 
 
+# Converts a character vector of IDs to a named list of TRUE values.
+# An empty input returns setNames(list(), character(0)) which serializes
+# to {} (JSON object), not [] (JSON array), satisfying the frontend's
+# z.record() schema for checkedClinics fields.
+ids_to_checked_record <- function(ids) {
+  if (length(ids) > 0) {
+    stats::setNames(rep(list(TRUE), length(ids)), ids)
+  } else {
+    stats::setNames(list(), character(0))
+  }
+}
+
+
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
@@ -698,28 +711,22 @@ build_export_json <- function(
   scenario2_ids <- as.character(unlist(results$scenario2$list))
   scenario2_visible <- length(scenario2_ids) > 0
 
-  checked_1 <- if (length(scenario1_ids) > 0) {
-    stats::setNames(rep(list(TRUE), length(scenario1_ids)), scenario1_ids)
-  } else {
-    list()
-  }
-  checked_2 <- if (length(scenario2_ids) > 0) {
-    stats::setNames(rep(list(TRUE), length(scenario2_ids)), scenario2_ids)
-  } else {
-    list()
-  }
+  checked_1 <- ids_to_checked_record(scenario1_ids)
 
   export <- list(
     version = "1.0",
     timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%S.000Z", tz = "UTC"),
     checkedClinicsScenario1 = checked_1,
-    checkedClinicsScenario2 = checked_2,
     resultsMode = results_mode,
     scenario2Visible = scenario2_visible,
     resultGeoFilters = result_geo_filters,
     results = results,
     clinics = clinics
   )
+
+  if (scenario2_visible) {
+    export$checkedClinicsScenario2 <- ids_to_checked_record(scenario2_ids)
+  }
 
   if (as_json) serialize_geojson(export) else export
 }
