@@ -460,14 +460,17 @@ assemble_feature_collection <- function(
   scenario1_summary,
   scenario2_summary = list()
 ) {
-  list(
+  fc <- list(
     type = "FeatureCollection",
     crs = build_crs_block(),
     features = features,
     mainHash = NA_character_,
-    scenario1 = scenario1_summary,
-    scenario2 = scenario2_summary
+    scenario1 = scenario1_summary
   )
+  if (length(scenario2_summary) > 0) {
+    fc$scenario2 <- scenario2_summary
+  }
+  fc
 }
 
 

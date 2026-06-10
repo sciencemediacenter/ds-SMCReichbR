@@ -284,7 +284,7 @@ test_that("assemble_feature_collection creates valid structure", {
   expect_equal(length(result$features), 1)
   expect_equal(result$crs$type, "name")
   expect_equal(result$scenario1$percentage_covered, 90)
-  expect_equal(result$scenario2, list())
+  expect_null(result$scenario2)
 })
 
 
@@ -441,9 +441,8 @@ test_that("szenario_to_geojson produces valid GeoJSON structure", {
   expect_equal(result$scenario1$list, list("H1", "H2"))
   expect_true(result$scenario1$percentage_covered == 100)
 
-  # Scenario2 should be empty list
-
-  expect_equal(result$scenario2, list())
+  # Scenario2 should be absent for single-scenario output
+  expect_null(result$scenario2)
 
   # Feature A should have scenario data
   f_a <- result$features[[1]]
