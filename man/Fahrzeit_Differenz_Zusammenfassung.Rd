@@ -8,9 +8,9 @@ Fahrzeit_Differenz_Zusammenfassung(
   reference_data,
   scenario_data,
   .by,
-  by = c("Gitterzellen_ID", "Einwohner", "Gemeindename", "Gemeindeschluessel",
+  by = c("Einwohner", "Gitterzellen_ID", "Gemeindename", "Gemeindeschluessel",
     "Bundesland", "Regierungsbezirk", "Kreis", "Bundesland_ID", "Regierungsbezirk_ID",
-    "Kreis_ID", "Gemeinde_ID", "Datum_Gitter")
+    "Kreis_ID", "Gemeinde_ID")
 )
 }
 \arguments{

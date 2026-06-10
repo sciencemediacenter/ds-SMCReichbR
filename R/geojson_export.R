@@ -12,7 +12,7 @@ utils::globalVariables(c(
   "EWZ",
   "geometry",
   "Bezeichnung",
-  "Träger",
+  "Tr\u00e4ger",
   "Adresse",
   "Bundesland",
   "Kreis",
@@ -604,7 +604,10 @@ kliniken_to_geojson <- function(
     krankenhaus_sf,
     dplyr::select(
       verwaltungsgebiete,
-      "Gemeindeschluessel", "Gemeindename", "Kreis", "Bundesland"
+      "Gemeindeschluessel",
+      "Gemeindename",
+      "Kreis",
+      "Bundesland"
     ),
     by = "Gemeindeschluessel"
   ) |>
@@ -615,9 +618,9 @@ kliniken_to_geojson <- function(
     joined,
     id = Krankenhaus_Standortnummer,
     name = dplyr::if_else(
-      is.na(Träger),
+      is.na(.data[["Tr\u00e4ger"]]),
       Bezeichnung,
-      paste0(Bezeichnung, " (", Träger, ")")
+      paste0(Bezeichnung, " (", .data[["Tr\u00e4ger"]], ")")
     ),
     adress = Adresse,
     bundesland = Bundesland,
