@@ -21,6 +21,34 @@ utils::globalVariables(c(
 ))
 
 
+#' Serialize a GeoJSON List to a JSON String
+#'
+#' Converts an R list (as returned by [szenario_to_geojson()],
+#' [kliniken_to_geojson()], or [build_export_json()] with `as_json = FALSE`)
+#' to a pretty-printed JSON string suitable for writing to a `.geojson` or
+#' `.json` file.
+#'
+#' @param x A named R list representing a GeoJSON FeatureCollection or
+#'   ExportData object.
+#'
+#' @return A JSON string.
+#'
+#' @examples
+#' # results_list |> serialize_geojson() |> writeLines("output/Fahrzeiten.geojson")
+#'
+#' @export
+serialize_geojson <- function(x) {
+  jsonlite::toJSON(
+    x,
+    auto_unbox = TRUE,
+    null = "null",
+    na = "null",
+    pretty = TRUE,
+    force = TRUE
+  )
+}
+
+
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
@@ -524,18 +552,7 @@ szenario_to_geojson <- function(
     scenario1_summary = scenario1_meta
   )
 
-  if (as_json) {
-    jsonlite::toJSON(
-      fc,
-      auto_unbox = TRUE,
-      null = "null",
-      na = "null",
-      pretty = TRUE,
-      force = TRUE
-    )
-  } else {
-    fc
-  }
+  if (as_json) serialize_geojson(fc) else fc
 }
 
 
@@ -619,16 +636,84 @@ kliniken_to_geojson <- function(
     features = features
   )
 
-  if (as_json) {
-    jsonlite::toJSON(
-      fc,
-      auto_unbox = TRUE,
-      null = "null",
-      na = "null",
-      pretty = TRUE,
-      force = TRUE
-    )
+  if (as_json) serialize_geojson(fc) else fc
+}
+
+
+# ---------------------------------------------------------------------------
+# Full export JSON (combines clinics + results)
+# ---------------------------------------------------------------------------
+
+#' Build Full Export JSON (ExportData Format)
+#'
+#' Combines the outputs of [kliniken_to_geojson()] and [szenario_to_geojson()]
+#' into the `ExportData` format used by the frontend's "JSON-Daten exportieren"
+#' function (`exportDataAsJSON`). The resulting JSON can be re-imported into
+#' the frontend application.
+#'
+#' @param clinics R list from [kliniken_to_geojson()] with `as_json = FALSE`.
+#' @param results R list from [szenario_to_geojson()] with `as_json = FALSE`.
+#'   The scenario IDs for `checkedClinicsScenario1` and `checkedClinicsScenario2`
+#'   are read from `results$scenario1$list` and `results$scenario2$list`.
+#' @param results_mode Character string controlling which result field the
+#'   frontend will display on load. One of `"fahrtzeit_scenario_1"` (default),
+#'   `"fahrtzeit_scenario_2"`, or `"fahrtzeit_difference"`.
+#' @param result_geo_filters Named list with elements `bundesland`, `kreis`,
+#'   `gemeinde` (each a character vector). Defaults to all-empty (no filter).
+#' @param as_json Logical; if `TRUE` (default), return a JSON string. If
+#'   `FALSE`, return the R list structure.
+#'
+#' @return Either a JSON string or a named list matching the frontend
+#'   `ExportData` schema.
+#'
+#' @examples
+#' # results_list <- szenario_to_geojson(..., as_json = FALSE)
+#' # clinics_list <- kliniken_to_geojson(..., as_json = FALSE)
+#' # json <- build_export_json(clinics = clinics_list, results = results_list)
+#'
+#' @export
+build_export_json <- function(
+  clinics,
+  results,
+  results_mode = "fahrtzeit_scenario_1",
+  result_geo_filters = list(
+    bundesland = list(),
+    kreis = list(),
+    gemeinde = list()
+  ),
+  as_json = TRUE
+) {
+  results_mode <- match.arg(
+    results_mode,
+    c("fahrtzeit_scenario_1", "fahrtzeit_scenario_2", "fahrtzeit_difference")
+  )
+
+  scenario1_ids <- as.character(unlist(results$scenario1$list))
+  scenario2_ids <- as.character(unlist(results$scenario2$list))
+  scenario2_visible <- length(scenario2_ids) > 0
+
+  checked_1 <- if (length(scenario1_ids) > 0) {
+    stats::setNames(rep(list(TRUE), length(scenario1_ids)), scenario1_ids)
   } else {
-    fc
+    list()
   }
+  checked_2 <- if (length(scenario2_ids) > 0) {
+    stats::setNames(rep(list(TRUE), length(scenario2_ids)), scenario2_ids)
+  } else {
+    list()
+  }
+
+  export <- list(
+    version = "1.0",
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%S.000Z", tz = "UTC"),
+    checkedClinicsScenario1 = checked_1,
+    checkedClinicsScenario2 = checked_2,
+    resultsMode = results_mode,
+    scenario2Visible = scenario2_visible,
+    resultGeoFilters = result_geo_filters,
+    results = results,
+    clinics = clinics
+  )
+
+  if (as_json) serialize_geojson(export) else export
 }
