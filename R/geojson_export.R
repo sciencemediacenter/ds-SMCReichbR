@@ -477,7 +477,7 @@ assemble_feature_collection <- function(
     type = "FeatureCollection",
     crs = build_crs_block(),
     features = features,
-    mainHash = NA_character_,
+    mainHash = "",
     scenario1 = scenario1_summary
   )
   if (length(scenario2_summary) > 0) {
@@ -711,22 +711,21 @@ build_export_json <- function(
   scenario2_ids <- as.character(unlist(results$scenario2$list))
   scenario2_visible <- length(scenario2_ids) > 0
 
-  checked_1 <- ids_to_checked_record(scenario1_ids)
-
+  # Both checked-clinics fields are always present. Empty selections
+  # serialize to {} (not omitted): the frontend reads back the raw imported
+  # object and would crash on an undefined checkedClinicsScenario2, whereas
+  # results.scenario2 is genuinely omitted when there is no second scenario.
   export <- list(
     version = "1.0",
     timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%S.000Z", tz = "UTC"),
-    checkedClinicsScenario1 = checked_1,
+    checkedClinicsScenario1 = ids_to_checked_record(scenario1_ids),
+    checkedClinicsScenario2 = ids_to_checked_record(scenario2_ids),
     resultsMode = results_mode,
     scenario2Visible = scenario2_visible,
     resultGeoFilters = result_geo_filters,
     results = results,
     clinics = clinics
   )
-
-  if (scenario2_visible) {
-    export$checkedClinicsScenario2 <- ids_to_checked_record(scenario2_ids)
-  }
 
   if (as_json) serialize_geojson(export) else export
 }
