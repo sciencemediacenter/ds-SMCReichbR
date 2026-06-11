@@ -239,9 +239,9 @@ add_empty_scenario2_columns <- function(props_tibble) {
   props_tibble |>
     dplyr::mutate(
       fahrtzeit_scenario_2 = NA_real_,
-      fahrtzeit_scenario_2_str = NA_character_,
+      fahrtzeit_scenario_2_str = "keine Daten",
       fahrtzeit_difference = NA_real_,
-      fahrtzeit_difference_str = NA_character_
+      fahrtzeit_difference_str = "keine Daten"
     )
 }
 
@@ -339,11 +339,11 @@ build_crs_block <- function() {
 build_scenario_summary <- function(
   scenario_ids = character(0),
   percentage_covered = NULL,
-  created_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 ) {
   list(
-    list = as.list(scenario_ids),
-    hash = NA_character_,
+    list = as.list(as.character(scenario_ids)),
+    hash = "",
     percentage_covered = percentage_covered,
     created_at = created_at
   )

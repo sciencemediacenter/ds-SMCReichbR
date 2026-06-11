@@ -252,7 +252,7 @@ test_that("build_scenario_summary returns correct structure", {
 
   expect_equal(result$list, list("770012345", "770067890"))
   expect_equal(result$percentage_covered, 85.5)
-  expect_true(is.na(result$hash))
+  expect_equal(result$hash, "")
   expect_true(!is.null(result$created_at))
 })
 

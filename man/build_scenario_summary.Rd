@@ -7,7 +7,7 @@
 build_scenario_summary(
   scenario_ids = character(0),
   percentage_covered = NULL,
-  created_at = format(Sys.time(), "\%Y-\%m-\%d \%H:\%M:\%S")
+  created_at = format(Sys.time(), "\%Y-\%m-\%dT\%H:\%M:\%SZ", tz = "UTC")
 )
 }
 \arguments{
